@@ -160,3 +160,94 @@ Puntos de enlace previstos para las funciones de E1 según el enunciado y el con
   1. *(Pendiente de integración)* Vincular el módulo de E1 con `casino.py` (módulo de E2) registrando las funciones de E1 mediante `casino.conectar_modulo_e1(...)`.
   2. *(Pendiente de integración)* Compartir una única ventana raíz `tk.Tk()` administrada por `casino.asegurar_ventana_raiz()` e iniciar la ejecución desde `ventana_sesion()` de E1.
   3. *(Pendiente de integración)* Al iniciar la sesión de un jugador en `ventana_sesion()`, invocar `casino.iniciar_sesion_e2(registro_jugador)` pasando la estructura `[(username, nombre, apellido), [dinero, rojas, azules, verdes, blancas], puntaje]` para cargarla en `jugador_actual` y abrir `menu_principal()`.
+
+
+
+Desarrollo del proyecto – Casino
+
+1. Descripción general de funciones 
+
+El proyecto consiste en desarrollar una aplicación que simule el funcionamiento de un casino, permitiendo a los usuarios registrarse, iniciar sesión, administrar su dinero y fichas, participar en diferentes juegos y consultar sus puntajes.
+
+El sistema se desarrolla utilizando Python y la biblioteca Tkinter para la creación de interfaces gráficas. Además, se utiliza el módulo Pickle para almacenar y recuperar la información de los jugadores, garantizando la persistencia de los datos.
+
+2. Organización del trabajo
+
+El desarrollo del proyecto se realiza mediante la colaboración de dos integrantes, distribuyendo las funcionalidades y responsabilidades de acuerdo con el cronograma establecido.
+
+Se utiliza GitHub como herramienta de control de versiones para almacenar el código fuente, registrar los cambios realizados y facilitar la integración del trabajo de ambas integrantes.
+
+3. Actividades correspondientes al miércoles 4 de noviembre
+
+Durante esta etapa del desarrollo se contempla la implementación de las siguientes funcionalidades:
+
+3.1. Administración de fichas, dinero y puntaje
+
+Se desarrolla la lógica necesaria para administrar los recursos de cada jugador. Esto incluye la consulta del dinero disponible, la cantidad de fichas por color, la compra y el canje de fichas, así como la actualización del puntaje obtenido durante las partidas.
+
+Los valores establecidos para las fichas son:
+
+- Ficha roja: $10.
+- Ficha azul: $50.
+- Ficha verde: $20.
+- Ficha blanca: $5.
+
+Se consideran validaciones para evitar compras sin suficiente dinero y canjes de fichas que el jugador no posee.
+
+3.2. Creación de la ventana de sesión
+
+Se contempla el desarrollo de una interfaz gráfica inicial mediante Tkinter, desde la cual los usuarios podrán registrarse o iniciar sesión para ingresar al sistema del casino.
+
+3.3. Registro de jugadores
+
+Se implementa el registro de nuevos jugadores mediante los siguientes datos:
+
+- Username.
+- Nombre.
+- Apellido.
+
+Se consideran validaciones para comprobar que los campos estén completos y que el nombre de usuario no se encuentre registrado previamente.
+
+3.4. Inicio de sesión
+
+Se desarrolla el proceso de autenticación mediante el username del jugador. El sistema debe comprobar que el usuario exista y permitir su acceso al menú principal cuando los datos sean válidos.
+
+3.5. Validación del archivo de jugadores
+
+Se contempla la validación del archivo de almacenamiento de jugadores, verificando que exista, que contenga información y que sus datos mantengan la estructura requerida.
+
+Para la persistencia de información se utiliza el módulo Pickle de Python.
+
+4. Organización técnica
+
+Las funcionalidades se distribuyen en módulos de Python para mantener una mejor organización del código y facilitar su mantenimiento.
+
+- "main.py": archivo principal encargado de iniciar y conectar las funcionalidades del sistema.
+- "datos.py": módulo destinado a la administración de jugadores, dinero, fichas, puntaje y almacenamiento de información.
+- "sesion.py": módulo encargado de la interfaz de sesión, registro e inicio de sesión.
+
+5. Control de versiones y colaboración
+
+Para el desarrollo colaborativo se utiliza GitHub, donde ambas integrantes trabajan sobre un repositorio compartido.
+
+Los cambios se registran mediante commits, permitiendo identificar las modificaciones realizadas durante el desarrollo.
+
+Los commits correspondientes a esta etapa contemplan:
+
+- #5 Agrega funciones de fichas, dinero y puntaje.
+- #6 Crea ventana de sesión.
+- #7 Implementa registro con validaciones.
+- #8 Implementa inicio de sesión.
+- #9 Valida archivo de jugadores inexistente o vacío.
+
+Una vez verificadas las funcionalidades, se realiza la integración de los cambios mediante un Merge hacia la rama principal ("main").
+
+6. Pruebas y validaciones
+
+Se deben realizar pruebas para comprobar el correcto funcionamiento del registro, inicio de sesión, administración de fichas, actualización del dinero y puntaje, así como la lectura y escritura de los datos de los jugadores.
+
+El objetivo es garantizar que las funcionalidades puedan integrarse correctamente con los demás módulos desarrollados por el equipo.
+
+7. Conclusión
+
+Esta etapa permite establecer las funcionalidades relacionadas con la administración de los jugadores y el control de sus recursos dentro del casino. Asimismo, contribuye a la integración progresiva del proyecto mediante el trabajo colaborativo y el control de versiones con GitHub.
