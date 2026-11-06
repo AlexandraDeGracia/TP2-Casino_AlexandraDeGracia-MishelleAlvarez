@@ -12,242 +12,188 @@ https://github.com/AlexandraDeGracia/TP2-Casino_AlexandraDeGracia-MishelleAlvare
 
 ## 4. División del trabajo
 
-- **E1 – Mishelle Álvarez:** Ventana de sesión (`ventana_sesion`), ruleta (`ruleta`), blackjack (`blackjack`), ranking (`ranking`), análisis (`analisis`), cerrar sesión (`cerrar_sesion`) y manejo y almacenamiento de datos con `pickle` (`guardar_datos`).
-- **E2 – Alexandra De Gracia:** Punto de arranque e integración (`iniciar_aplicacion`), menú principal (`menu_principal`), ventana de juegos (`ventana_juegos`), tragamonedas (`tragamonedas`), dados (`dados`), ventana de fichas (`ventana_fichas`) y documentación interna.
+Nos dividimos las partes del proyecto siguiendo las entregas de E1 y E2:
+
+- **E1 – Mishelle Álvarez:** Se encargó de la ventana de inicio de sesión y registro (`sesion.py`: `crearVentanaSesion`, `iniciarSesion`, `registrarDesdeFormulario`, `validarRegistro`), todo el manejo del archivo binario con `pickle` (`datos.py`: `obtenerRutaArchivo`, `validarEstructuraJugador`, `validarArchivoJugadores`, `cargarJugadores`, `guardarJugadores`, `buscarJugador`, `registrarJugador`, `guardarCambiosJugador`, `consultarDinero`, `consultarFichas`, `comprarFichas`, `canjearFichas`, `actualizarPuntaje`), y los módulos de ruleta (`ruleta`), blackjack (`blackjack`), ranking (`ranking`) y análisis (`analisis`).
+- **E2 – Alexandra De Gracia (`casino.py`):** Se encargó de unir el arranque del programa con la sesión de E1 (`iniciar_aplicacion`, `conectar_modulo_e1`, `limpiar_jugador_actual`, `cargar_desde_estructura_e1`, `iniciar_sesion_e2`, `guardar_datos_e1`, `abrir_ventana_sesion_e1`, `cerrar_sesion_e1`, `abrir_funcionalidad_e1`), el menú principal (`menu_principal`), la ventana de juegos (`ventana_juegos`), el juego de tragamonedas (`tragamonedas`), el juego de dados (`dados`), la ventana para comprar y canjear fichas (`ventana_fichas`) y la revisión de la documentación interna.
 
 ---
 
 ## 5. Estructuras de datos
 
-### 5.1. Estructura principal compartida entre E1 y E2 (`jugador_actual`)
-El registro del jugador activo en `casino.py` trabaja directamente sobre la estructura posicional establecida por el enunciado para la integración entre E1 y E2 y su persistencia en archivo:
+### 5.1. Estructura principal del jugador (`jugador_actual`)
+Tanto en `casino.py` como en `datos.py` y `sesion.py` trabajamos con la misma lista para representar al jugador que tiene la sesión abierta y guardarlo en el archivo `jugadores`:
 
 ```python
 [(username, nombre, apellido), [dinero, rojas, azules, verdes, blancas], puntaje]
 ```
 
-#### Tipos de datos reales en el código:
+#### Cómo está armada la lista en el código:
 - **Posición `0` — `(username, nombre, apellido)` (`tuple`):**
-  - `username` (`str`): identificador único de usuario del jugador (`jugador_actual[0][0]`).
+  - `username` (`str`): usuario único del jugador (`jugador_actual[0][0]`).
   - `nombre` (`str`): nombre del jugador (`jugador_actual[0][1]`).
   - `apellido` (`str`): apellido del jugador (`jugador_actual[0][2]`).
 - **Posición `1` — `[dinero, rojas, azules, verdes, blancas]` (`list` con un `float` y cuatro `int`):**
-  - Índice `0` — `dinero` (`float`): dinero disponible del jugador en dólares (`jugador_actual[1][0]`).
-  - Índice `1` — `rojas` (`int`): cantidad de fichas rojas de `$10` (`jugador_actual[1][1]`).
-  - Índice `2` — `azules` (`int`): cantidad de fichas azules de `$50` (`jugador_actual[1][2]`).
-  - Índice `3` — `verdes` (`int`): cantidad de fichas verdes de `$20` (`jugador_actual[1][3]`).
-  - Índice `4` — `blancas` (`int`): cantidad de fichas blancas de `$5` (`jugador_actual[1][4]`).
-- **Posición `2` — `puntaje` (`int`):** puntaje entero acumulado por el jugador en los juegos del casino (`jugador_actual[2]`).
+  - Índice `0` — `dinero` (`float`): dinero disponible en dólares (`jugador_actual[1][0]`).
+  - Índice `1` — `rojas` (`int`): fichas rojas de `$10` (`jugador_actual[1][1]`).
+  - Índice `2` — `azules` (`int`): fichas azules de `$50` (`jugador_actual[1][2]`).
+  - Índice `3` — `verdes` (`int`): fichas verdes de `$20` (`jugador_actual[1][3]`).
+  - Índice `4` — `blancas` (`int`): fichas blancas de `$5` (`jugador_actual[1][4]`).
+- **Posición `2` — `puntaje` (`int`):** puntos acumulados por el jugador en las partidas (`jugador_actual[2]`).
 
-Para consultar y modificar las fichas por color directamente sobre `jugador_actual[1]` sin duplicar estructuras de datos, se utilizan las funciones auxiliares `obtener_indice_color(color_ficha)` (que devuelve los índices `1` a `4` según el color, o `-1` si no existe) y `obtener_fichas_color(color_ficha)`.
+Para leer y actualizar las fichas según el color elegido sin tener listas repetidas, usamos en `casino.py` las funciones `obtener_indice_color(color_ficha)` (que devuelve del `1` al `4` según el color, o `-1` si no existe), `obtener_fichas_color(color_ficha)`, `obtener_llave_color_e1(color_ficha)` y `obtener_valor_ficha(color_ficha)`.
 
-### 5.2. Constantes y estructuras auxiliares en `casino.py`
-- `valores_fichas` (`dict`): `{"Rojo": 10, "Azul": 50, "Verde": 20, "Blanco": 5}`.
-- `ORDEN_COLORES` (`list`): `["Rojo", "Azul", "Verde", "Blanco"]`.
-- `PUNTOS_GANAR` (`int`): `2` (puntos otorgados por victoria).
-- `PUNTOS_PERDER` (`int`): `-1` (puntos descontados por derrota).
-- `MULTIPLICADOR_TRAGAMONEDAS` (`int`): `2` (multiplicador de pago al obtener tres símbolos iguales en tragamonedas).
-- `PASOS_ANIMACION` (`int`): `15` (cantidad de pasos de animación en los rodillos de tragamonedas).
-- `INTERVALO_ANIMACION_MS` (`int`): `150` (intervalo en milisegundos entre cada paso de animación).
-- `MATRIZ_RODILLOS` (`list` de 3 `list`): matriz de 3 filas por 5 símbolos (`"Cereza"`, `"Limon"`, `"Campana"`, `"Estrella"`, `"Siete"`).
-- `COMBINACIONES_GANADORAS` (`dict`): diccionario que asocia cada tupla de 3 símbolos iguales con `MULTIPLICADOR_TRAGAMONEDAS` (`2`).
-- `DICCIONARIO_APUESTAS_DADOS` (`dict`): `{"par": 2, "impar": 2, "dobles": 5, "sumaExacta": 12}`.
-- `MATRIZ_OPCIONES_DADOS` (`list` de 2 `list`): matriz de 2x2 `[["par", "impar"], ["dobles", "sumaExacta"]]` para posicionar los botones de opción en `dados()`.
-- `enlaces_e1` (`dict`): diccionario de referencias para conectar las funciones de E1 (`ventana_sesion`, `ruleta`, `blackjack`, `ranking`, `analisis`, `cerrar_sesion`, `guardar_datos`) mediante `conectar_modulo_e1()`.
-
----
-
-## 6. Decisiones tomadas y descartadas e inconsistencias del enunciado (Condición 11)
-
-A continuación se documentan las inconsistencias identificadas en el enunciado conforme a la **Condición 11** de las especificaciones, así como las decisiones técnicas adoptadas en el desarrollo del proyecto:
-
-### 6.1. Inconsistencias del enunciado y resolución conforme a la Condición 11
-
-1. **Dados (puntos, diccionario de premios y probabilidades de suma exacta):**
-   - **Problema o inconsistencia encontrada:** El enunciado no especifica una regla de asignación de puntos para el juego de dados ni define expresamente si los valores del diccionario de ejemplo `{"par": 2, "impar": 2, "dobles": 5, "sumaExacta": 12}` corresponden a multiplicadores de pago. Asimismo, aplicar un multiplicador único `x12` para cualquier suma exacta entre `2` y `12` no representa una distribución proporcional a la probabilidad real con dos dados (por ejemplo, obtener una suma de `7` tiene `6/36` combinaciones posibles, mientras que obtener `2` o `12` tiene únicamente `1/36`).
-   - **Solución adoptada:** El equipo detectó la inconsistencia y, siguiendo la Condición 11, documenta el problema y la solución adoptada: utilizar los valores `2`, `2`, `5` y `12` como multiplicadores directos de la apuesta en `DICCIONARIO_APUESTAS_DADOS`, y asignar `+2` puntos (`PUNTOS_GANAR`) al ganar y `-1` punto (`PUNTOS_PERDER`) al perder para mantener total uniformidad con el sistema general de puntaje del casino.
-
-2. **Tragamonedas (ejemplo de pagos de 50 y 20 frente a duplicar fichas):**
-   - **Problema o inconsistencia encontrada:** El ejemplo incluido en el enunciado muestra pagos fijos de `50` y `20`, mientras que la regla general del texto descriptivo indica que al obtener tres símbolos iguales se duplican las fichas apostadas.
-   - **Solución adoptada:** El equipo detectó la inconsistencia y, siguiendo la Condición 11, documenta el problema y la solución adoptada: utilizar el multiplicador `2` (`MULTIPLICADOR_TRAGAMONEDAS = 2`) en `COMBINACIONES_GANADORAS` para duplicar la apuesta realizada cuando los tres rodillos coinciden, descartando los valores fijos `50` y `20` del ejemplo.
-
-### 6.2. Decisiones técnicas de diseño
-
-1. **Sistema de apuestas y descuentos de fichas:**
-   - **Elegida:** Descontar las fichas apostadas al iniciar la jugada (`modificar_fichas_juego(-apuesta, color_ficha)`) y, en caso de ganar, acreditar el pago completo `apuesta * multiplicador` (`liquidar_resultado_apuesta`).
-   - **Descartada:** No descontar la apuesta antes de jugar y sumar `apuesta * multiplicador` al ganar, ya que duplicaba indebidamente las fichas apostadas.
-2. **Apuestas por color de ficha:**
-   - **Elegida:** Permitir seleccionar el color de ficha (`Rojo`, `Azul`, `Verde`, `Blanco`) antes de apostar y liquidar tanto descuentos como ganancias sobre ese mismo color directamente en `jugador_actual[1]`.
-   - **Descartada:** Descontar mezclando colores y acreditar siempre fichas blancas, ya que alteraba el valor monetario del inventario del jugador.
-3. **Animación por índices y bloqueo de cierre en Tragamonedas:**
-   - **Elegida:** Recorrer secuencialmente por índice cada fila de `MATRIZ_RODILLOS` durante `15` pasos (`PASOS_ANIMACION`) de `150` ms (`INTERVALO_ANIMACION_MS`) (`2.25` segundos en total) con `after()`, bloqueando los botones y el cierre de la ventana mediante la `X` (`WM_DELETE_WINDOW`) mientras `estado_juego["girando"]` está activo.
-   - **Descartada:** Permitir cerrar la ventana con la `X` en mitad del giro, lo cual interrumpía la partida cuando la apuesta ya había sido descontada sin procesar el resultado ni los puntos.
-4. **Administración de ventanas Tkinter y disposición de controles:**
-   - **Elegida:** Utilizar una única instancia raíz `tk.Tk()` mediante `asegurar_ventana_raiz()` y ventanas secundarias `tk.Toplevel()` mediante `preparar_ventana_e2()`, organizando los controles con espaciado compacto y, en `dados()`, una cuadrícula 2x2 (`MATRIZ_OPCIONES_DADOS`) para las opciones de apuesta, con ventanas de `550x620` (`dados`) y `540x580` (`tragamonedas`).
-   - **Descartada:** Crear múltiples instancias de `tk.Tk()` o múltiples llamadas a `mainloop()`.
-5. **Integración modular entre E1 y `casino.py` (módulo de E2):**
-   - **Elegida:** Mantener en `casino.py` exclusivamente las funcionalidades de E2 operando directamente sobre la lista `jugador_actual` y conectar las funciones de E1 mediante el diccionario `enlaces_e1` y la función `conectar_modulo_e1()`.
-   - **Descartada:** Mantener dos estructuras de datos separadas para el mismo jugador o crear múltiples ventanas raíz `tk.Tk()` entre E1 y E2.
+### 5.2. Constantes, matrices y diccionarios en `datos.py` y `casino.py`
+- **En `datos.py`:**
+  - `NOMBRE_ARCHIVO` (`str`): `"jugadores"` (nombre del archivo binario donde guardamos los jugadores con `pickle`).
+  - `VALOR_FICHAS` (`dict`): `{"rojas": 10, "azules": 50, "verdes": 20, "blancas": 5}` (diccionario con el precio en dólares de cada color de ficha).
+- **En `casino.py`:**
+  - `ORDEN_COLORES` (`list`): `["Rojo", "Azul", "Verde", "Blanco"]`.
+  - `PUNTOS_GANAR` (`int`): `2` (puntos que se suman al ganar una partida).
+  - `PUNTOS_PERDER` (`int`): `-1` (puntos que se restan al perder).
+  - `MULTIPLICADOR_TRAGAMONEDAS` (`int`): `2` (paga el doble cuando salen tres símbolos iguales).
+  - `PASOS_ANIMACION` (`int`): `15` (cantidad de cambios que hacen los rodillos antes de detenerse).
+  - `INTERVALO_ANIMACION_MS` (`int`): `150` (milisegundos entre cada cambio del giro).
+  - `MATRIZ_RODILLOS` (`list` de 3 `list`): matriz de `3x5` con los cinco símbolos de cada rodillo (`"Cereza"`, `"Limon"`, `"Campana"`, `"Estrella"`, `"Siete"`).
+  - `COMBINACIONES_GANADORAS` (`dict`): diccionario que usa tuplas de 3 símbolos iguales como llaves y les asigna el multiplicador `2`.
+  - `DICCIONARIO_APUESTAS_DADOS` (`dict`): `{"par": 2, "impar": 2, "dobles": 5, "sumaExacta": 12}`.
+  - `MATRIZ_OPCIONES_DADOS` (`list` de 2 `list`): matriz de `2x2` `[["par", "impar"], ["dobles", "sumaExacta"]]` para acomodar los botones en la ventana de dados.
+  - `enlaces_e1` (`dict`): diccionario donde guardamos las referencias a las funciones de E1 al iniciar el programa con `conectar_modulo_e1()`.
 
 ---
 
-## 7. Documentación de módulos del proyecto (E1 y E2) y persistencia de archivos
+## 6. Decisiones tomadas, opciones descartadas e inconsistencias del enunciado (Condición 11)
 
-### 7.1. Módulos y funciones correspondientes a E1 (Mishelle Álvarez)
-Puntos de enlace previstos para las funciones de E1 según el enunciado y el contrato `enlaces_e1`:
-- **`ventana_sesion()`:** Ventana de inicio de sesión y registro de jugadores (sin uso de contraseñas, conforme al enunciado). Una vez seleccionado o registrado el jugador activo, transfiere su lista de datos a `iniciar_sesion_e2(registro_jugador)`.
-  - Detalle de implementación interna: `[Pendiente de completar por E1 (Mishelle Álvarez)]`
-- **`ruleta()`:** Juego de ruleta correspondiente a E1, invocado desde `ventana_juegos()` mediante `abrir_funcionalidad_e1("ruleta", "Ruleta")`.
-  - Detalle de implementación interna: `[Pendiente de completar por E1 (Mishelle Álvarez)]`
-- **`blackjack()`:** Juego de blackjack correspondiente a E1, invocado desde `ventana_juegos()` mediante `abrir_funcionalidad_e1("blackjack", "Blackjack")`.
-  - Detalle de implementación interna: `[Pendiente de completar por E1 (Mishelle Álvarez)]`
-- **`ranking()`:** Módulo de ranking correspondiente a E1, invocado desde `menu_principal()` mediante `abrir_funcionalidad_e1("ranking", "Ranking")`.
-  - Detalle de implementación interna y archivo HTML: `[Pendiente de completar por E1 (Mishelle Álvarez)]`
-- **`analisis()`:** Módulo de análisis correspondiente a E1, invocado desde `menu_principal()` mediante `abrir_funcionalidad_e1("analisis", "Análisis")`.
-  - Detalle de implementación interna y archivo CSV: `[Pendiente de completar por E1 (Mishelle Álvarez)]`
-- **`cerrar_sesion()`:** Función de cierre de sesión correspondiente a E1, invocada desde `menu_principal()` tras ejecutar `guardar_datos_e1()`.
-  - Detalle de implementación interna: `[Pendiente de completar por E1 (Mishelle Álvarez)]`
-- **`guardar_datos()`:** Función de persistencia en `pickle` correspondiente a E1, invocada mediante `guardar_datos_e1()`.
-  - Detalle de implementación interna y nombre del archivo `pickle`: `[Pendiente de completar por E1 (Mishelle Álvarez)]`
+Durante el desarrollo encontramos algunos detalles que no estaban del todo claros o tenían diferencias en el enunciado. Siguiendo la **Condición 11**, aquí explicamos qué encontramos y cómo decidimos resolverlo:
 
-### 7.2. Módulos y funciones correspondientes a E2 (Alexandra De Gracia – `casino.py`)
-- **`iniciar_aplicacion()`:** Punto de entrada en `casino.py`. Asegura la única ventana raíz `tk.Tk()` e inicia el flujo de la aplicación por `ventana_sesion()` (si el módulo de E1 está conectado) o abre `menu_principal()` en modo de prueba de E2.
-- **`menu_principal()`:** Ventana principal del casino con información del jugador activo y botones de acceso a `ventana_juegos()`, `ventana_fichas()`, `ranking()`, `analisis()` y cierre de sesión.
-- **`ventana_juegos()`:** Menú selector de los cuatro juegos del casino (`ruleta`, `blackjack`, `tragamonedas`, `dados`), mostrando el total de fichas (`calcular_total_fichas()`), su valor en dólares (`calcular_valor_monetario_fichas()`) y el desglose por color (`obtener_texto_desglose_fichas()`).
-- **`tragamonedas()`:** Juego de tragamonedas apoyado en las funciones `validar_apuesta_por_color()`, `modificar_fichas_juego()`, `avanzar_indices_rodillos()`, `evaluar_resultado_tragamonedas()` y `liquidar_resultado_apuesta()`.
-- **`dados()`:** Juego de dados apoyado en las funciones `validar_apuesta_por_color()`, `validar_entero_positivo()`, `ejecutar_jugada_dados()`, `modificar_fichas_juego()`, `generar_tirada_dados()`, `verificar_acierto_dados()` y `liquidar_resultado_apuesta()`.
-- **`ventana_fichas()`:** Ventana de compra y canje de fichas apoyada en las funciones `validar_entero_no_negativo()`, `calcular_totales_operacion_fichas()`, `validar_disponibilidad_canje()`, `aplicar_compra_fichas()` y `aplicar_canje_fichas()`.
-- **Funciones de acceso y cálculo de fichas:** `obtener_indice_color()`, `obtener_fichas_color()`, `calcular_total_fichas()`, `calcular_valor_monetario_fichas()` y `obtener_texto_desglose_fichas()`.
-- **Funciones de administración de ventanas Tkinter:** `asegurar_ventana_raiz()`, `preparar_ventana_e2()`, `cerrar_aplicacion_completa()`, `iniciar_bucle_principal_si_corresponde()`, `crear_titulo_ventana()`, `crear_panel_saldo_juego()`, `actualizar_panel_saldo_juego()`, `crear_campo_entrada_apuesta()`, `crear_boton_estandar()`, `crear_selector_color_ficha()`, `crear_etiquetas_rodillos()` y `crear_tabla_inventario_fichas()`.
-- **Funciones de integración con E1:** `conectar_modulo_e1()`, `cargar_desde_estructura_e1()`, `iniciar_sesion_e2()`, `guardar_datos_e1()` y `abrir_funcionalidad_e1()`.
+### 6.1. Inconsistencias del enunciado (Condición 11)
+
+1. **Dados (puntaje y ventaja matemática del `x12` en suma exacta a `7`):**
+   - **Problema encontrado:** En la parte de dados, el enunciado no dice cuántos puntos se ganan o se pierden por jugada, ni aclara si los números del diccionario `{"par": 2, "impar": 2, "dobles": 5, "sumaExacta": 12}` son multiplicadores. Además, pagar `x12` por igual para cualquier suma exacta entre `2` y `12` no coincide con las probabilidades reales de dos dados: sacar un `7` tiene `6/36` (`1/6`) de probabilidad, por lo que pagar `x12` le da ventaja al jugador con una esperanza matemática de `2` por apuesta (`(6/36) × 12 = 2`, es decir, gana `+1` en promedio por jugada), mientras que sacar `2` o `12` solo tiene `1/36` de probabilidad (esperanza de `12/36 = 1/3`).
+   - **Cómo lo resolvimos (decisión consciente):** Como decisión consciente del diseño, preferimos dejar el diccionario tal cual viene en el enunciado (`{"par": 2, "impar": 2, "dobles": 5, "sumaExacta": 12}`) usando esos valores como multiplicadores directos (incluyendo el `x12` cuando se apuesta al `7`) para no cambiar la estructura pedida. Para el puntaje, aplicamos la misma regla del resto del casino: `+2` puntos al ganar y `-1` punto al perder.
+
+2. **Tragamonedas (ejemplo con pagos de 50 y 20 vs. duplicar las fichas):**
+   - **Problema encontrado:** El ejemplo del enunciado menciona pagos fijos de `50` y `20`, pero la explicación de las reglas dice que al sacar tres símbolos iguales se duplican las fichas apostadas.
+   - **Cómo lo resolvimos:** Nos guiamos por la regla general y usamos el multiplicador `2` (`MULTIPLICADOR_TRAGAMONEDAS = 2`) en `COMBINACIONES_GANADORAS` para duplicar la apuesta cuando los tres rodillos coinciden, descartando los pagos fijos de `50` y `20`.
+
+3. **Dinero inicial al registrar un jugador nuevo:**
+   - **Problema encontrado:** El enunciado no indica explícitamente con cuánto dinero debe empezar un jugador recién registrado y tampoco pide una ventana para recargar o depositar dinero.
+   - **Qué pasaba si empezaba en `$0.00`:** Si un usuario nuevo se creaba con `[0.0, 0, 0, 0, 0]`, entraba al casino con `$0.00` y `0` fichas. Como la ficha más barata (la blanca) cuesta `$5`, el jugador quedaba bloqueado desde el inicio sin poder comprar fichas en `ventana_fichas()` ni apostar en ningún juego.
+   - **Cómo lo resolvimos:** Definimos un dinero inicial de `$100.00` (`[100.0, 0, 0, 0, 0]`) en la función `registrarJugador()` de `datos.py`. Elegimos `$100.00` porque se ajusta bien a los precios de las fichas (`$5`, `$10`, `$20` y `$50`) y a la apuesta mínima de `1` ficha, permitiendo que cualquier usuario recién registrado pueda comprar fichas de todos los colores (por ejemplo, hasta `2` azules, `5` verdes, `10` rojas o `20` blancas) y probar los juegos de inmediato.
+
+### 6.2. Otras decisiones que tomamos en el código
+
+1. **Descuento de fichas al apostar:**
+   - **Lo que hicimos:** Descontar las fichas apenas inicia la jugada (`modificar_fichas_juego(-apuesta, color_ficha)`) y, si el jugador gana, entregarle `apuesta * multiplicador` en `liquidar_resultado_apuesta()`.
+   - **Lo que descartamos:** No descontar la apuesta al principio y sumar `apuesta * multiplicador` al final, porque eso le regalaba al jugador las fichas que había puesto en la mesa.
+2. **Apuestas respetando el color de ficha:**
+   - **Lo que hicimos:** Agregar un selector de color (`Rojo`, `Azul`, `Verde`, `Blanco`) en los juegos para que la apuesta se descuente y se pague en ese mismo color dentro de `jugador_actual[1]`.
+   - **Lo que descartamos:** Restar fichas mezclando colores o pagar siempre con fichas blancas, porque eso cambiaba el valor en dólares que tenía el jugador.
+3. **Animación de los rodillos y bloqueo de la ventana en Tragamonedas:**
+   - **Lo que hicimos:** Mover cada rodillo por índice dentro de `MATRIZ_RODILLOS` durante `15` pasos de `150` ms (`2.25` segundos en total) usando `after()`. Mientras los rodillos están girando, se deshabilitan los botones y también se bloquea el cierre con la `X` de la ventana (`WM_DELETE_WINDOW`).
+   - **Lo que descartamos:** Dejar que el usuario cierre la ventana en pleno giro, porque ya se le habían descontado las fichas y la jugada quedaba a medias sin sumar ni restar puntos.
+4. **Manejo de ventanas en Tkinter:**
+   - **Lo que hicimos:** Mantener una sola ventana raíz `tk.Tk()` (`asegurar_ventana_raiz()`) y abrir las demás pantallas como `tk.Toplevel()` (`preparar_ventana_e2()`, incluyendo el login de `sesion.py`), con un único `mainloop()`.
+   - **Lo que descartamos:** Crear varios `tk.Tk()` o llamar a `mainloop()` en cada módulo, ya que eso daba problemas al cambiar entre la sesión y el menú principal.
+5. **Validación de números enteros con `isdecimal()`:**
+   - **Lo que hicimos:** Unificar la revisión de campos numéricos en `validar_entero(texto, nombre_campo, permitir_cero=False)` usando `isdecimal()` en vez de `isdigit()`.
+   - **Lo que descartamos:** Usar `isdigit()` o tener dos funciones casi iguales con `try/except`, porque `isdigit()` acepta caracteres como `"²"` que luego fallan al hacer `int("²")`.
+6. **Unificación de la compra y canje de fichas con `datos.py`:**
+   - **Lo que hicimos:** En lugar de tener dos diccionarios de precios distintos, `casino.py` consulta directamente `datos.VALOR_FICHAS`, y cuando el jugador confirma una compra o un canje en `ventana_fichas()`, se llaman las funciones `datos.comprarFichas()` y `datos.canjearFichas()`, las cuales actualizan los saldos y guardan en el archivo `jugadores`.
+   - **Lo que descartamos:** Mantener un diccionario `valores_fichas` repetido y funciones separadas (`aplicar_compra_fichas` y `aplicar_canje_fichas`) que no guardaban en el archivo de E1.
+7. **Guardado de cambios y limpieza al cerrar sesión:**
+   - **Lo que hicimos:** Al iniciar sesión se comprueba con `datos.validarEstructuraJugador()` que el registro esté completo antes de abrir el menú. Al terminar cada jugada o cerrar sesión se guarda el progreso con `datos.guardarCambiosJugador(jugador_actual)`. Si falla el guardado, se avisa con un mensaje de error en vez de decir que todo salió bien. Al cerrar sesión, `limpiar_jugador_actual()` deja `jugador_actual` en blanco antes de volver al login.
+   - **Lo que descartamos:** Dejar los datos del usuario anterior cargados en `jugador_actual` al salir de la sesión.
 
 ---
 
-## 8. Estado de implementación
+## 7. Avances por integrante y funciones del proyecto
+
+### 7.1. Parte de E1 (Mishelle Álvarez – `sesion.py` y `datos.py`)
+
+#### Lo que ya está implementado en `sesion.py` y `datos.py`:
+- **`sesion.crearVentanaSesion(alIniciarSesion=False, ventanaPadre=False)`:** Arma la ventana para registrarse o iniciar sesión con el `username`. Recibe `ventanaPadre` desde `casino.py` para abrirse dentro del mismo flujo de Tkinter y, cuando el jugador entra, llama a `casino.iniciar_sesion_e2(jugador)`.
+- **`sesion.iniciarSesion(username)`:** Revisa que el campo no esté vacío y busca al jugador en el archivo con `datos.buscarJugador(username)`.
+- **`sesion.registrarDesdeFormulario(username, nombre, apellido)` y `sesion.validarRegistro(username, nombre, apellido)`:** Comprueban que los tres datos estén escritos y crean al jugador con `datos.registrarJugador()`.
+- **`datos.obtenerRutaArchivo()`, `datos.validarEstructuraJugador(jugador)` y `datos.validarArchivoJugadores()`:** Se encargan de ubicar el archivo `jugadores` y revisar que los datos guardados no estén corruptos ni incompletos.
+- **`datos.cargarJugadores()` y `datos.guardarJugadores(jugadores)`:** Leen y guardan la lista de jugadores en binario con `pickle`.
+- **`datos.buscarJugador(username, jugadores=None)` y `datos.registrarJugador(username, nombre, apellido)`:** Buscan un usuario existente o registran uno nuevo dándole `$100.00` de dinero inicial (`[100.0, 0, 0, 0, 0]`) y `0` puntos.
+- **`datos.guardarCambiosJugador(jugador)`:** Actualiza los datos del jugador activo dentro del archivo `jugadores`.
+- **`datos.comprarFichas(jugador, cantidades)` y `datos.canjearFichas(jugador, cantidades)`:** Calculan el total con `datos.VALOR_FICHAS`, actualizan el dinero y las fichas del jugador y guardan los cambios en el archivo.
+- **`datos.consultarDinero(jugador)`, `datos.consultarFichas(jugador)` y `datos.actualizarPuntaje(jugador, cantidad)`:** Funciones de apoyo para consultar saldos y modificar el puntaje.
+
+#### Módulos de E1 que faltan por subir:
+- **`ruleta`**, **`blackjack`**, **`ranking`** y **`analisis`**. Mientras se terminan de integrar, los botones en `casino.py` usan `abrir_funcionalidad_e1()` para avisar si el módulo aún no está conectado.
+
+### 7.2. Parte de E2 (Alexandra De Gracia – `casino.py`)
+- **`iniciar_aplicacion()`:** Punto de arranque del programa. Crea la ventana raíz, abre el login de E1 y pone a correr el `mainloop()`.
+- **`menu_principal()`:** Muestra el `username` del jugador, su dinero disponible (`$0.00`), el total de fichas, sus puntos y cuántas fichas tiene de cada color. Incluye los botones `"Jugar"`, `"Fichas"`, `"Ranking"`, `"Análisis"` y `"Cerrar sesión"` (que pide confirmación, guarda los datos y limpia la sesión).
+- **`ventana_juegos()`:** Muestra las fichas disponibles del jugador (`calcular_total_fichas()`), el valor total en dólares de sus fichas (`calcular_valor_monetario_fichas()`), el detalle por color con su precio (`Rojas ($10)`, `Azules ($50)`, `Verdes ($20)`, `Blancas ($5)`), los puntos acumulados, los botones hacia los cuatro juegos (`Ruleta`, `Tragamonedas`, `Blackjack` y `Dados`) y el botón `"Volver al menú principal"`.
+- **`ventana_fichas()`:** Permite comprar y canjear fichas viendo en pantalla el dinero disponible (`$0.00`) y una tabla con la cantidad actual y el valor de cada color. Valida que no se ingresen letras ni símbolos inválidos, que no se haga una operación en cero, que alcance el dinero al comprar y que alcancen las fichas al canjear. Antes de aplicar el cambio pide confirmación con `messagebox.askyesno` y guarda todo en el archivo `jugadores`.
+- **`tragamonedas()` (Entrada 3):** Corresponde a la **Entrada 3 del Drive: tragamonedas**:
+  - **Matriz de rodillos y diccionario de combinaciones:** Usa `MATRIZ_RODILLOS` (`3x5` con `"Cereza"`, `"Limon"`, `"Campana"`, `"Estrella"` y `"Siete"`) y `COMBINACIONES_GANADORAS` (tuplas de 3 símbolos iguales con multiplicador `x2`).
+  - **Ventana de tragamonedas y selección de fichas a apostar:** Construye la interfaz gráfica con los tres rodillos, el panel de saldo, el selector de color de ficha (`crear_selector_color_ficha()`), el campo de entrada de apuesta (`crear_campo_entrada_apuesta()`) y la validación por color (`validar_apuesta_por_color()`).
+  - **Giro de rodillos y evaluación del resultado:** Al presionar `"Girar"`, descuenta las fichas apostadas, recorre los rodillos durante `15` pasos con `after()` (`iniciar_giro()`, `animar_rodillos()`, `avanzar_indices_rodillos()`), evalúa si los tres símbolos finales coinciden (`finalizar_giro()`, `evaluar_resultado_tragamonedas()`), actualiza fichas y puntos (`liquidar_resultado_apuesta()`) y guarda en el archivo `jugadores`.
+- **`dados()`:** Permite apostar por color de ficha a `"par"`, `"impar"`, `"dobles"` o `"sumaExacta"` (validando que la suma elegida esté entre `2` y `12`), lanza los dos dados con `random.randint(1, 6)`, muestra el resultado y actualiza fichas y puntaje.
+
+---
+
+## 8. Estado actual del proyecto
 
 ### Implementado
 - **En `casino.py` (E2 – Alexandra De Gracia):**
-  - `iniciar_aplicacion()`
-  - `menu_principal()`
-  - `ventana_juegos()`
-  - `tragamonedas()` (`avanzar_indices_rodillos`, `evaluar_resultado_tragamonedas`, `modificar_fichas_juego`, `liquidar_resultado_apuesta`, `validar_apuesta_por_color`)
-  - `dados()` (`ejecutar_jugada_dados`, `generar_tirada_dados`, `verificar_acierto_dados`, `modificar_fichas_juego`, `liquidar_resultado_apuesta`, `validar_apuesta_por_color`)
-  - `ventana_fichas()` (`calcular_totales_operacion_fichas`, `validar_disponibilidad_canje`, `aplicar_compra_fichas`, `aplicar_canje_fichas`, `validar_entero_no_negativo`)
-  - Funciones de acceso y cálculo de fichas (`obtener_indice_color`, `obtener_fichas_color`, `calcular_total_fichas`, `calcular_valor_monetario_fichas`, `obtener_texto_desglose_fichas`) y de integración con E1 (`conectar_modulo_e1`, `cargar_desde_estructura_e1`, `iniciar_sesion_e2`, `guardar_datos_e1`, `abrir_funcionalidad_e1`).
+  - Conexión completa con `datos.py` y `sesion.py` usando una sola ventana raíz `tk.Tk()`.
+  - `menu_principal()`, `ventana_juegos()`, `ventana_fichas()`, `tragamonedas()` y `dados()`.
+  - Entrada 3 completa: matriz de rodillos, diccionario de combinaciones, ventana de tragamonedas, apuesta con fichas y giro de rodillos.
+  - Validación de enteros con `isdecimal()` en `validar_entero()` y docstrings de las `62` funciones ajustados al formato de la Condición 12 (`- nombre(tipo): Descripción.`, `- Ninguna.` y `- Ninguna: ...`).
+- **En `datos.py` y `sesion.py` (E1 – Mishelle Álvarez):**
+  - Guardado y lectura en `pickle`, registro con `$100.00` de dinero inicial (`[100.0, 0, 0, 0, 0]`), inicio de sesión conectado al menú principal, compra y canje con `VALOR_FICHAS`, y docstrings de las `13` funciones de `datos.py` y las `6` funciones de `sesion.py` en el formato de la Condición 12.
 
 ### Probado
-- Compilación y verificación estática de sintaxis de `casino.py` mediante `py_compile` sin errores.
-- Revisión del formato de docstrings (`Funcionalidad`, `Entrada`, `Salida`) en las funciones de `casino.py`.
+- **Verificado mediante compilación:**
+  - Los tres archivos (`casino.py`, `datos.py` y `sesion.py`) compilan sin errores con `python -m py_compile`.
+  - Se revisó mediante análisis sintáctico (`ast`) que las `81` funciones del proyecto tengan su docstring completo con `Funcionalidad:`, `Entrada:` y `Salida:` en líneas separadas y con el formato `- nombre(tipo): Descripción.` (o `- Ninguna.` / `- Ninguna: ...` cuando no reciben parámetros o no retornan valor).
+- **Verificado mediante prueba de lógica:**
+  - Prueba de `validar_entero()` con entradas válidas (`"123"`, `"0"` cuando se permite cero, `"１２３"`) e inválidas (`"0"` en apuestas, `"-5"`, `"12.5"`, `"abc"`, `""` y `"²"`, confirmando que `isdecimal()` rechaza `"²"`).
+  - Pruebas de cálculo de fichas, validación de apuestas por color, resultados de dados y combinaciones de tragamonedas.
+- **Verificado mediante integración:**
+  - Registro de un jugador nuevo en `datos.registrarJugador()` verificando que inicia con `$100.00` (`[100.0, 0, 0, 0, 0]`), inicio de sesión hacia `menu_principal()`, y rechazo de registros incompletos o con formato inválido.
+  - Compra y canje de fichas guardando en el archivo `jugadores`, actualización de puntaje y fichas después de jugar en dados y tragamonedas, y limpieza de `jugador_actual` al cerrar sesión para que otro usuario pueda entrar sin que se mezclen los datos.
 
 ### Pendiente
-- Pruebas interactivas en la interfaz gráfica con un jugador de prueba (apuestas en tragamonedas y dados, compra y canje de fichas, validaciones de campos y respuesta `"Sí"` / `"No"` en los cuadros de confirmación).
-- Integración en el repositorio con el módulo desarrollado por **E1 (Mishelle Álvarez)**: `ventana_sesion`, `ruleta`, `blackjack`, `ranking`, `analisis`, `cerrar_sesion` y `guardar_datos`.
-- Pruebas integradas del flujo completo del proyecto (E1 + E2).
+- Subir e integrar los cuatro módulos restantes de **E1 (Mishelle Álvarez)**: `ruleta`, `blackjack`, `ranking` y `analisis`.
+- Verificación manual de la interfaz gráfica ejecutando `python casino.py` con un jugador de prueba (abrir manualmente cada ventana, comprobar visualmente la animación de los rodillos de tragamonedas y el bloqueo del botón `X` durante el giro).
 
 ---
 
 ## 9. Instrucciones para ejecutar el programa
 
-- **Versión de Python compatible:** Python 3.5.1 o superior.
-- **Archivo de E2:** `casino.py`
-- **Dependencias necesarias:** Librerías estándar de Python (`tkinter` y `random`).
-- **Comando para ejecutar actualmente E2 (modo de prueba mientras se integra E1):**
+- **Versión de Python:** Python 3.5.1 o superior.
+- **Archivos necesarios:** `casino.py`, `datos.py` y `sesion.py` en la misma carpeta.
+- **Librerías:** Solo librerías estándar de Python (`tkinter`, `random`, `pickle` y `os`).
+- **Cómo iniciarlo:**
   ```bash
   python casino.py
   ```
-  > **Nota:** Actualmente, ejecutar `python casino.py` inicia únicamente el módulo de E2 abriendo `menu_principal()` en modo de prueba, dado que la integración con el módulo de E1 aún se encuentra pendiente.
-- **Flujo de arranque e integración E1/E2 (previsto y pendiente de integración con E1):**
-  1. *(Pendiente de integración)* Vincular el módulo de E1 con `casino.py` (módulo de E2) registrando las funciones de E1 mediante `casino.conectar_modulo_e1(...)`.
-  2. *(Pendiente de integración)* Compartir una única ventana raíz `tk.Tk()` administrada por `casino.asegurar_ventana_raiz()` e iniciar la ejecución desde `ventana_sesion()` de E1.
-  3. *(Pendiente de integración)* Al iniciar la sesión de un jugador en `ventana_sesion()`, invocar `casino.iniciar_sesion_e2(registro_jugador)` pasando la estructura `[(username, nombre, apellido), [dinero, rojas, azules, verdes, blancas], puntaje]` para cargarla en `jugador_actual` y abrir `menu_principal()`.
+- **Resumen de cómo funciona al abrirlo:**
+  1. Al correr `python casino.py`, se abre la ventana de sesión (`sesion.py`).
+  2. Ahí se puede registrar un jugador nuevo (que empieza con `$100.00` de dinero disponible) o escribir el `username` de uno ya registrado y darle a `"Iniciar sesion"`.
+  3. Al iniciar sesión se abre el `menu_principal()`, desde donde se puede entrar a `"Fichas"` (`ventana_fichas()`) para comprar fichas con los `$100.00` iniciales o canjearlas por dinero, y a `"Jugar"` (`ventana_juegos()`) para entrar a `Tragamonedas` o `Dados`.
+  4. Cada compra, canje o jugada guarda automáticamente los cambios del jugador en el archivo binario `jugadores`.
+  5. Al presionar `"Cerrar sesión"` y confirmar que `"Sí"`, se guardan los datos, se limpia la estructura en memoria y vuelve a salir la ventana de inicio de sesión.
 
+---
 
+## 10. Organización de archivos y notas del equipo
 
-Desarrollo del proyecto – Casino
+### 10.1. Archivos del repositorio y seguimiento Scrum
+- `casino.py`: archivo principal desde donde se corre el programa (`python casino.py`). Contiene toda la parte de **E2 (Alexandra De Gracia)**: integración general, menú principal, ventana de juegos, tragamonedas, dados y ventana gráfica de compra y canje de fichas.
+- `datos.py`: módulo de **E1 (Mishelle Álvarez)** que maneja el archivo binario `jugadores` con `pickle`, el diccionario `VALOR_FICHAS` y las funciones que actualizan el dinero, las fichas y el puntaje en disco.
+- `sesion.py`: módulo de **E1 (Mishelle Álvarez)** con la interfaz de registro e inicio de sesión por `username`.
+- **Seguimiento Scrum:** El seguimiento Scrum de las etapas del proyecto y las evidencias (incluyendo la **Entrada 3 del Drive: tragamonedas**) se encuentran registrados en la carpeta compartida de Google Drive del equipo.
 
-1. Descripción general de funciones 
+### 10.2. Relación entre E1 y E2 en el manejo de fichas
+La interfaz gráfica de `ventana_fichas()`, la tabla de inventario, los cuadros de confirmación y las validaciones de lo que escribe el usuario pertenecen a **E2 (`casino.py`)**, mientras que `datos.py` (**E1**) aporta el diccionario `VALOR_FICHAS` y las funciones `comprarFichas`, `canjearFichas` y `guardarCambiosJugador` para que todo quede guardado en el archivo `jugadores`.
 
-El proyecto consiste en desarrollar una aplicación que simule el funcionamiento de un casino, permitiendo a los usuarios registrarse, iniciar sesión, administrar su dinero y fichas, participar en diferentes juegos y consultar sus puntajes.
-
-El sistema se desarrolla utilizando Python y la biblioteca Tkinter para la creación de interfaces gráficas. Además, se utiliza el módulo Pickle para almacenar y recuperar la información de los jugadores, garantizando la persistencia de los datos.
-
-2. Organización del trabajo
-
-El desarrollo del proyecto se realiza mediante la colaboración de dos integrantes, distribuyendo las funcionalidades y responsabilidades de acuerdo con el cronograma establecido.
-
-Se utiliza GitHub como herramienta de control de versiones para almacenar el código fuente, registrar los cambios realizados y facilitar la integración del trabajo de ambas integrantes.
-
-3. Actividades correspondientes al miércoles 4 de noviembre
-
-Durante esta etapa del desarrollo se contempla la implementación de las siguientes funcionalidades:
-
-3.1. Administración de fichas, dinero y puntaje
-
-Se desarrolla la lógica necesaria para administrar los recursos de cada jugador. Esto incluye la consulta del dinero disponible, la cantidad de fichas por color, la compra y el canje de fichas, así como la actualización del puntaje obtenido durante las partidas.
-
-Los valores establecidos para las fichas son:
-
-- Ficha roja: $10.
-- Ficha azul: $50.
-- Ficha verde: $20.
-- Ficha blanca: $5.
-
-Se consideran validaciones para evitar compras sin suficiente dinero y canjes de fichas que el jugador no posee.
-
-3.2. Creación de la ventana de sesión
-
-Se contempla el desarrollo de una interfaz gráfica inicial mediante Tkinter, desde la cual los usuarios podrán registrarse o iniciar sesión para ingresar al sistema del casino.
-
-3.3. Registro de jugadores
-
-Se implementa el registro de nuevos jugadores mediante los siguientes datos:
-
-- Username.
-- Nombre.
-- Apellido.
-
-Se consideran validaciones para comprobar que los campos estén completos y que el nombre de usuario no se encuentre registrado previamente.
-
-3.4. Inicio de sesión
-
-Se desarrolla el proceso de autenticación mediante el username del jugador. El sistema debe comprobar que el usuario exista y permitir su acceso al menú principal cuando los datos sean válidos.
-
-3.5. Validación del archivo de jugadores
-
-Se contempla la validación del archivo de almacenamiento de jugadores, verificando que exista, que contenga información y que sus datos mantengan la estructura requerida.
-
-Para la persistencia de información se utiliza el módulo Pickle de Python.
-
-4. Organización técnica
-
-Las funcionalidades se distribuyen en módulos de Python para mantener una mejor organización del código y facilitar su mantenimiento.
-
-- "main.py": archivo principal encargado de iniciar y conectar las funcionalidades del sistema.
-- "datos.py": módulo destinado a la administración de jugadores, dinero, fichas, puntaje y almacenamiento de información.
-- "sesion.py": módulo encargado de la interfaz de sesión, registro e inicio de sesión.
-
-5. Control de versiones y colaboración
-
-Para el desarrollo colaborativo se utiliza GitHub, donde ambas integrantes trabajan sobre un repositorio compartido.
-
-Los cambios se registran mediante commits, permitiendo identificar las modificaciones realizadas durante el desarrollo.
-
-Los commits correspondientes a esta etapa contemplan:
-
-- #5 Agrega funciones de fichas, dinero y puntaje.
-- #6 Crea ventana de sesión.
-- #7 Implementa registro con validaciones.
-- #8 Implementa inicio de sesión.
-- #9 Valida archivo de jugadores inexistente o vacío.
-
-Una vez verificadas las funcionalidades, se realiza la integración de los cambios mediante un Merge hacia la rama principal ("main").
-
-6. Pruebas y validaciones
-
-Se deben realizar pruebas para comprobar el correcto funcionamiento del registro, inicio de sesión, administración de fichas, actualización del dinero y puntaje, así como la lectura y escritura de los datos de los jugadores.
-
-El objetivo es garantizar que las funcionalidades puedan integrarse correctamente con los demás módulos desarrollados por el equipo.
-
-7. Conclusión
-
-Esta etapa permite establecer las funcionalidades relacionadas con la administración de los jugadores y el control de sus recursos dentro del casino. Asimismo, contribuye a la integración progresiva del proyecto mediante el trabajo colaborativo y el control de versiones con GitHub.
+### 10.3. Nota sobre el uso de Inteligencia Artificial
+La Inteligencia Artificial (IA) se utilizó únicamente para los docstrings (redacción y ajuste del formato de documentación interna pedido en la Condición 12).

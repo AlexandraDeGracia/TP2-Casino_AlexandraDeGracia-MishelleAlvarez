@@ -8,6 +8,9 @@
 import tkinter as tk
 from tkinter import messagebox
 import random
+import pickle
+import datos
+import sesion
 
 # CONSTANTES Y DEFINICIONES GLOBALES
 
@@ -17,14 +20,6 @@ MULTIPLICADOR_TRAGAMONEDAS = 2
 
 PASOS_ANIMACION = 15
 INTERVALO_ANIMACION_MS = 150
-
-# Diccionario que relaciona cada color de ficha con su valor en dólares
-valores_fichas = {
-    "Rojo": 10,
-    "Azul": 50,
-    "Verde": 20,
-    "Blanco": 5
-}
 
 # Orden de colores que coincide con las posiciones 1, 2, 3 y 4 de la sublista de dinero y fichas
 ORDEN_COLORES = ["Rojo", "Azul", "Verde", "Blanco"]
@@ -69,144 +64,230 @@ jugador_actual = [
 
 # Diccionario para guardar las funciones de E1 cuando se conecten
 enlaces_e1 = {
-    "ventana_sesion": None,
-    "ruleta": None,
-    "blackjack": None,
-    "ranking": None,
-    "analisis": None,
-    "cerrar_sesion": None,
-    "guardar_datos": None
+    "ventana_sesion": False,
+    "ruleta": False,
+    "blackjack": False,
+    "ranking": False,
+    "analisis": False,
+    "cerrar_sesion": False,
+    "guardar_datos": False
 }
 
 # Variables globales para manejar la ventana principal y las ventanas secundarias
-ventana_raiz = None
-ventana_secundaria = None
+ventana_raiz = False
+ventana_secundaria = False
 mainloop_iniciado = False
 
 
 # FUNCIONES DE INTEGRACIÓN CON E1 Y ACCESO A DATOS DEL JUGADOR
 
-def conectar_modulo_e1(ventana_sesion_fn=None, ruleta_fn=None, blackjack_fn=None, ranking_fn=None, analisis_fn=None, cerrar_sesion_fn=None, guardar_datos_fn=None):
+def conectar_modulo_e1(ventana_sesion_fn=False, ruleta_fn=False, blackjack_fn=False, ranking_fn=False, analisis_fn=False, cerrar_sesion_fn=False, guardar_datos_fn=False):
     """
     Funcionalidad:
-    Guardar en el diccionario enlaces_e1 las funciones desarrolladas por E1
-    para poder llamarlas desde los botones del menú principal y de los juegos.
+        Guarda en el diccionario enlaces_e1 las funciones desarrolladas por E1
+        para poder llamarlas desde los botones del menú principal y de los juegos.
 
     Entrada:
-    - ventana_sesion_fn(function): función ventana_sesion de E1.
-    - ruleta_fn(function): función ruleta de E1.
-    - blackjack_fn(function): función blackjack de E1.
-    - ranking_fn(function): función ranking de E1.
-    - analisis_fn(function): función analisis de E1.
-    - cerrar_sesion_fn(function): función cerrar_sesion de E1.
-    - guardar_datos_fn(function): función guardar_datos de E1.
+        - ventana_sesion_fn(function): Función de la ventana de sesión de E1.
+        - ruleta_fn(function): Función del juego de ruleta de E1.
+        - blackjack_fn(function): Función del juego de blackjack de E1.
+        - ranking_fn(function): Función de la ventana de ranking de E1.
+        - analisis_fn(function): Función de la ventana de análisis de E1.
+        - cerrar_sesion_fn(function): Función para cerrar la sesión activa de E1.
+        - guardar_datos_fn(function): Función para guardar los cambios del jugador de E1.
 
     Salida:
-    - enlaces_e1(dict): diccionario actualizado con las funciones conectadas.
+        - enlaces_e1(dict): Diccionario actualizado con las funciones conectadas de E1.
     """
-    if ventana_sesion_fn != None:
+    if ventana_sesion_fn:
         enlaces_e1["ventana_sesion"] = ventana_sesion_fn
-    if ruleta_fn != None:
+    if ruleta_fn:
         enlaces_e1["ruleta"] = ruleta_fn
-    if blackjack_fn != None:
+    if blackjack_fn:
         enlaces_e1["blackjack"] = blackjack_fn
-    if ranking_fn != None:
+    if ranking_fn:
         enlaces_e1["ranking"] = ranking_fn
-    if analisis_fn != None:
+    if analisis_fn:
         enlaces_e1["analisis"] = analisis_fn
-    if cerrar_sesion_fn != None:
+    if cerrar_sesion_fn:
         enlaces_e1["cerrar_sesion"] = cerrar_sesion_fn
-    if guardar_datos_fn != None:
+    if guardar_datos_fn:
         enlaces_e1["guardar_datos"] = guardar_datos_fn
     return enlaces_e1
+
+
+def limpiar_jugador_actual():
+    """
+    Funcionalidad:
+        Reinicia en memoria los datos de jugador_actual con valores vacíos y en cero
+        para evitar que una nueva sesión herede información del jugador anterior.
+
+    Entrada:
+        - Ninguna.
+
+    Salida:
+        - jugador_actual(list): Lista global del jugador reiniciada con sus valores vacíos.
+    """
+    global jugador_actual
+    jugador_actual = [
+        ("", "", ""),
+        [0.0, 0, 0, 0, 0],
+        0
+    ]
+    return jugador_actual
 
 
 def cargar_desde_estructura_e1(registro_e1):
     """
     Funcionalidad:
-    Cargar en jugador_actual la lista del jugador recibida desde E1
-    [(username, nombre, apellido), [dinero, rojas, azules, verdes, blancas], puntaje],
-    asegurando que el dinero sea float y las fichas y el puntaje sean int.
+        Valida y carga en jugador_actual la lista del jugador recibida desde E1
+        [(username, nombre, apellido), [dinero, rojas, azules, verdes, blancas], puntaje],
+        asegurando que el registro sea válido y que los tipos numéricos sean float e int.
 
     Entrada:
-    - registro_e1(list): lista con los datos del jugador activo.
+        - registro_e1(list): Lista con los datos personales, recursos y puntaje del jugador activo.
 
     Salida:
-    - Ninguna.
+        - es_valido(bool): True si el registro es válido y fue cargado, False en caso contrario.
     """
     global jugador_actual
-    if type(registro_e1) != list or len(registro_e1) < 3:
-        return
+    if type(registro_e1) != list or not datos.validarEstructuraJugador(registro_e1):
+        messagebox.showerror(
+            "Error al cargar jugador",
+            "El registro del jugador recibido es inválido o está incompleto."
+        )
+        return False
 
     datos_personales = registro_e1[0]
     saldos = registro_e1[1]
     puntaje = registro_e1[2]
 
-    if type(datos_personales) == tuple and len(datos_personales) >= 3:
-        registro_e1[0] = (
-            str(datos_personales[0]),
-            str(datos_personales[1]),
-            str(datos_personales[2])
-        )
+    registro_e1[0] = (
+        str(datos_personales[0]).strip(),
+        str(datos_personales[1]).strip(),
+        str(datos_personales[2]).strip()
+    )
 
-    if type(saldos) == list and len(saldos) >= 5:
-        saldos[0] = float(saldos[0])
-        saldos[1] = int(saldos[1])
-        saldos[2] = int(saldos[2])
-        saldos[3] = int(saldos[3])
-        saldos[4] = int(saldos[4])
+    saldos[0] = float(saldos[0])
+    saldos[1] = int(saldos[1])
+    saldos[2] = int(saldos[2])
+    saldos[3] = int(saldos[3])
+    saldos[4] = int(saldos[4])
 
     registro_e1[2] = int(puntaje)
     jugador_actual = registro_e1
+    return True
 
 
 def iniciar_sesion_e2(registro_e1):
     """
     Funcionalidad:
-    Recibir desde la ventana de sesión de E1 el registro del jugador activo
-    y abrir el menú principal.
+        Recibe desde la ventana de sesión de E1 el registro del jugador activo,
+        verifica que se haya cargado válidamente y abre el menú principal.
 
     Entrada:
-    - registro_e1(list): lista del jugador recibido desde la sesión de E1.
+        - registro_e1(list): Lista del jugador recibida desde la ventana de sesión de E1.
 
     Salida:
-    - Ninguna.
+        - sesion_iniciada(bool): True si se abrió el menú principal, False si el registro fue rechazado.
     """
-    cargar_desde_estructura_e1(registro_e1)
-    menu_principal()
+    if cargar_desde_estructura_e1(registro_e1):
+        menu_principal()
+        return True
+    return False
 
 
 def guardar_datos_e1():
     """
     Funcionalidad:
-    Llamar a la función guardar_datos de E1 si ya se encuentra conectada.
+        Guarda los datos del jugador activo pasando jugador_actual a la función
+        de persistencia conectada en enlaces_e1['guardar_datos'] y notifica si ocurre algún error.
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - Ninguna.
+        - guardado_exitoso(bool): True si el guardado se completó sin errores, False en caso contrario.
     """
     funcion_guardar = enlaces_e1["guardar_datos"]
-    if funcion_guardar != None:
-        funcion_guardar()
+    if not funcion_guardar:
+        return True
+
+    username = str(jugador_actual[0][0]).strip()
+    if username == "":
+        messagebox.showerror(
+            "Error al guardar datos",
+            "No hay un jugador activo válido para guardar."
+        )
+        return False
+
+    try:
+        funcion_guardar(jugador_actual)
+        return True
+    except (ValueError, TypeError, OSError, pickle.UnpicklingError, EOFError) as error:
+        messagebox.showerror(
+            "Error al guardar datos",
+            "No se pudieron guardar los datos del jugador '" + username + "': " + str(error)
+        )
+        return False
+
+
+def abrir_ventana_sesion_e1():
+    """
+    Funcionalidad:
+        Abre la ventana de sesión de E1 dentro de una ventana Toplevel hija
+        de la única ventana raíz tk.Tk() y la conecta con iniciar_sesion_e2.
+
+    Entrada:
+        - Ninguna.
+
+    Salida:
+        - ventana_login(Toplevel): Ventana secundaria con la interfaz de sesión de E1.
+    """
+    ventana_login = preparar_ventana_e2(
+        "Casino - Sesion", "430x440", False, cerrar_aplicacion_completa
+    )
+    return sesion.crearVentanaSesion(iniciar_sesion_e2, ventana_login)
+
+
+def cerrar_sesion_e1():
+    """
+    Funcionalidad:
+        Limpia de la memoria los datos del jugador anterior y abre nuevamente
+        la ventana de inicio de sesión de E1 sin crear una segunda ventana raíz.
+
+    Entrada:
+        - Ninguna.
+
+    Salida:
+        - Ninguna: Limpia el jugador activo y abre la ventana de sesión sin retornar un valor.
+    """
+    limpiar_jugador_actual()
+    abrir_ventana_sesion_e1()
+
+
+conectar_modulo_e1(
+    ventana_sesion_fn=abrir_ventana_sesion_e1,
+    cerrar_sesion_fn=cerrar_sesion_e1,
+    guardar_datos_fn=datos.guardarCambiosJugador
+)
 
 
 def abrir_funcionalidad_e1(nombre_funcion, descripcion):
     """
     Funcionalidad:
-    Ejecutar una función del módulo E1 registrada en enlaces_e1 o mostrar un mensaje
-    informativo si todavía no ha sido conectada.
+        Ejecuta una función del módulo E1 registrada en enlaces_e1 o muestra un mensaje
+        informativo si todavía no ha sido conectada.
 
     Entrada:
-    - nombre_funcion(str): nombre de la llave en enlaces_e1 ('ruleta', 'blackjack', 'ranking', 'analisis').
-    - descripcion(str): nombre visible de la opción seleccionada.
+        - nombre_funcion(str): Nombre de la llave de la funcionalidad en el diccionario enlaces_e1.
+        - descripcion(str): Nombre visible de la opción seleccionada por el jugador.
 
     Salida:
-    - Ninguna.
+        - Ninguna: Ejecuta la función conectada de E1 o muestra un aviso informativo sin retornar un valor.
     """
     funcion_e1 = enlaces_e1[nombre_funcion]
-    if funcion_e1 != None:
+    if funcion_e1:
         funcion_e1()
     else:
         messagebox.showwarning(
@@ -217,17 +298,57 @@ def abrir_funcionalidad_e1(nombre_funcion, descripcion):
 
 # FUNCIONES DE CÁLCULO Y ACTUALIZACIÓN DE SALDOS Y FICHAS
 
+def obtener_llave_color_e1(color_ficha):
+    """
+    Funcionalidad:
+        Convierte el nombre de un color de ficha ('Rojo', 'Azul', 'Verde', 'Blanco')
+        a la llave correspondiente del diccionario compartido datos.VALOR_FICHAS ('rojas', 'azules', 'verdes', 'blancas').
+
+    Entrada:
+        - color_ficha(str): Nombre del color de ficha en singular.
+
+    Salida:
+        - llave_color(str): Llave en plural correspondiente al color en el diccionario de datos.
+    """
+    if color_ficha == "Rojo":
+        return "rojas"
+    elif color_ficha == "Azul":
+        return "azules"
+    elif color_ficha == "Verde":
+        return "verdes"
+    elif color_ficha == "Blanco":
+        return "blancas"
+    else:
+        return ""
+
+
+def obtener_valor_ficha(color_ficha):
+    """
+    Funcionalidad:
+        Consulta el valor en dólares de un color de ficha directamente desde el
+        diccionario unificado datos.VALOR_FICHAS.
+
+    Entrada:
+        - color_ficha(str): Nombre del color de ficha a consultar.
+
+    Salida:
+        - valor(int): Valor unitario en dólares de la ficha del color indicado.
+    """
+    llave = obtener_llave_color_e1(color_ficha)
+    return int(datos.VALOR_FICHAS[llave])
+
+
 def obtener_indice_color(color_ficha):
     """
     Funcionalidad:
-    Obtener la posición que ocupa un color de ficha dentro de la sublista
-    jugador_actual[1] ([dinero, rojas, azules, verdes, blancas]).
+        Obtiene la posición que ocupa un color de ficha dentro de la sublista
+        jugador_actual[1] ([dinero, rojas, azules, verdes, blancas]).
 
     Entrada:
-    - color_ficha(str): nombre del color ('Rojo', 'Azul', 'Verde' o 'Blanco').
+        - color_ficha(str): Nombre del color de ficha a consultar.
 
     Salida:
-    - indice(int): índice numérico (1 para Rojo, 2 para Azul, 3 para Verde, 4 para Blanco, o -1 si no existe).
+        - indice(int): Posición numérica del color en la sublista de recursos o -1 si no existe.
     """
     if color_ficha == "Rojo":
         return 1
@@ -244,13 +365,13 @@ def obtener_indice_color(color_ficha):
 def obtener_fichas_color(color_ficha):
     """
     Funcionalidad:
-    Consultar cuántas fichas tiene el jugador en un color específico.
+        Consulta cuántas fichas tiene el jugador en un color específico.
 
     Entrada:
-    - color_ficha(str): nombre del color ('Rojo', 'Azul', 'Verde' o 'Blanco').
+        - color_ficha(str): Nombre del color de ficha a consultar.
 
     Salida:
-    - cantidad(int): cantidad de fichas disponibles de ese color.
+        - cantidad(int): Cantidad de fichas disponibles del color indicado.
     """
     indice = obtener_indice_color(color_ficha)
     return int(jugador_actual[1][indice])
@@ -259,55 +380,50 @@ def obtener_fichas_color(color_ficha):
 def calcular_total_fichas():
     """
     Funcionalidad:
-    Sumar la cantidad total de fichas que posee el jugador recorriendo ORDEN_COLORES.
+        Suma la cantidad total de fichas que posee el jugador recorriendo ORDEN_COLORES.
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - total(int): suma total de fichas del jugador.
+        - total(int): Suma total de fichas de todos los colores del jugador activo.
     """
     total = 0
-    i = 0
-    while i < len(ORDEN_COLORES):
-        color = ORDEN_COLORES[i]
+    for color in ORDEN_COLORES:
         total = total + obtener_fichas_color(color)
-        i = i + 1
     return total
 
 
 def calcular_valor_monetario_fichas():
     """
     Funcionalidad:
-    Calcular el valor total en dólares de todas las fichas que posee el jugador.
+        Calcula el valor total en dólares de todas las fichas que posee el jugador
+        consultando el diccionario compartido datos.VALOR_FICHAS.
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - valor_total(int): suma en dólares del valor de las fichas del jugador.
+        - valor_total(int): Suma en dólares del valor de todas las fichas del jugador activo.
     """
     valor_total = 0
-    i = 0
-    while i < len(ORDEN_COLORES):
-        color = ORDEN_COLORES[i]
+    for color in ORDEN_COLORES:
         cantidad = obtener_fichas_color(color)
-        valor_total = valor_total + (cantidad * valores_fichas[color])
-        i = i + 1
+        valor_total = valor_total + (cantidad * obtener_valor_ficha(color))
     return valor_total
 
 
 def obtener_texto_desglose_fichas():
     """
     Funcionalidad:
-    Generar un texto con la cantidad de fichas de cada color y su valor en dólares
-    recorriendo ORDEN_COLORES con un ciclo while y usando valores_fichas.
+        Genera un texto con la cantidad de fichas de cada color y su valor en dólares
+        recorriendo ORDEN_COLORES y consultando datos.VALOR_FICHAS.
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - texto(str): cadena con el desglose de fichas Rojas, Azules, Verdes y Blancas.
+        - texto(str): Cadena formateada con la cantidad y el valor en dólares de cada color de ficha.
     """
     nombres_plurales = {
         "Rojo": "Rojas",
@@ -316,31 +432,29 @@ def obtener_texto_desglose_fichas():
         "Blanco": "Blancas"
     }
     texto = ""
-    i = 0
-    while i < len(ORDEN_COLORES):
+    for i in range(len(ORDEN_COLORES)):
         color = ORDEN_COLORES[i]
         etiqueta = nombres_plurales[color]
-        valor = valores_fichas[color]
+        valor = obtener_valor_ficha(color)
         cantidad = obtener_fichas_color(color)
         texto = texto + etiqueta + " ($" + str(valor) + "): " + str(cantidad)
         if i < len(ORDEN_COLORES) - 1:
             texto = texto + "  |  "
-        i = i + 1
     return texto
 
 
 def modificar_fichas_juego(cambio, color_ficha):
     """
     Funcionalidad:
-    Sumar o descontar fichas del color seleccionado directamente sobre la estructura
-    jugador_actual[1].
+        Suma o descuenta fichas del color seleccionado directamente sobre la estructura
+        jugador_actual[1].
 
     Entrada:
-    - cambio(int): cantidad de fichas a sumar (positivo) o descontar (negativo).
-    - color_ficha(str): color de la ficha ('Rojo', 'Azul', 'Verde' o 'Blanco').
+        - cambio(int): Cantidad de fichas a sumar o descontar en el color seleccionado.
+        - color_ficha(str): Color de la ficha sobre el cual se aplica el cambio.
 
     Salida:
-    - total_actualizado(int): cantidad total de fichas del jugador luego del cambio.
+        - total_fichas(int): Cantidad total de fichas del jugador después de aplicar el cambio.
     """
     indice = obtener_indice_color(color_ficha)
     jugador_actual[1][indice] = int(jugador_actual[1][indice]) + int(cambio)
@@ -350,17 +464,17 @@ def modificar_fichas_juego(cambio, color_ficha):
 def liquidar_resultado_apuesta(apuesta, color_ficha, gano, multiplicador):
     """
     Funcionalidad:
-    Acreditar las fichas ganadas cuando el jugador acierta (apuesta * multiplicador),
-    actualizar el puntaje sumando PUNTOS_GANAR o PUNTOS_PERDER y guardar los datos.
+        Acredita las fichas ganadas cuando el jugador acierta (apuesta * multiplicador),
+        actualiza el puntaje sumando PUNTOS_GANAR o PUNTOS_PERDER y guarda los datos en el archivo jugadores.
 
     Entrada:
-    - apuesta(int): cantidad de fichas apostadas al inicio de la jugada.
-    - color_ficha(str): color de las fichas apostadas.
-    - gano(bool): True si el jugador ganó la jugada, False si perdió.
-    - multiplicador(int): multiplicador de premio según el juego.
+        - apuesta(int): Cantidad de fichas apostadas al inicio de la jugada.
+        - color_ficha(str): Color de las fichas apostadas en la jugada.
+        - gano(bool): True si el jugador acertó la jugada, False si perdió.
+        - multiplicador(int): Multiplicador de premio correspondiente al juego.
 
     Salida:
-    - resultado_liquidacion(tuple): tupla (pago_total, ganancia_neta).
+        - resultado(tuple): Tupla con el pago total acreditado y la ganancia neta de la jugada.
     """
     if gano:
         pago_total = apuesta * multiplicador
@@ -378,59 +492,35 @@ def liquidar_resultado_apuesta(apuesta, color_ficha, gano, multiplicador):
 
 # FUNCIONES AUXILIARES DE VALIDACIÓN
 
-def validar_entero_positivo(texto, nombre_campo):
+def validar_entero(texto, nombre_campo, permitir_cero=False):
     """
     Funcionalidad:
-    Validar que el texto ingresado contenga solo dígitos y sea un entero mayor que cero.
+        Valida que el texto ingresado contenga únicamente dígitos decimales mediante isdecimal()
+        y represente un número entero mayor que cero o mayor o igual a cero según permitir_cero.
 
     Entrada:
-    - texto(str): texto escrito por el usuario en el campo de entrada.
-    - nombre_campo(str): nombre del campo para mostrar en el mensaje de error.
+        - texto(str): Texto escrito por el usuario en el campo de entrada.
+        - nombre_campo(str): Nombre descriptivo del campo para los mensajes de validación.
+        - permitir_cero(bool): True si se admite el valor cero, False si debe ser mayor que cero.
 
     Salida:
-    - resultado(tuple): tupla (es_valido(bool), numero(int), mensaje_error(str)).
+        - resultado(tuple): Tupla con el indicador de validez, el número entero convertido y el mensaje de error.
     """
     texto_limpio = str(texto).strip()
     if texto_limpio == "":
+        if permitir_cero:
+            return (False, 0, "La cantidad para " + nombre_campo + " no puede estar vacía (usa 0 si no deseas elegir).")
         return (False, 0, "El campo '" + nombre_campo + "' no puede estar vacío.")
 
-    if not texto_limpio.isdigit():
+    if not texto_limpio.isdecimal():
+        if permitir_cero:
+            return (False, 0, "La cantidad para " + nombre_campo + " debe contener únicamente números enteros.")
         return (False, 0, "En '" + nombre_campo + "' debes ingresar únicamente números enteros positivos.")
 
-    try:
-        numero = int(texto_limpio)
-    except ValueError:
-        return (False, 0, "En '" + nombre_campo + "' debes ingresar un número entero válido.")
+    numero = int(texto_limpio)
 
-    if numero <= 0:
+    if not permitir_cero and numero <= 0:
         return (False, 0, "El valor de '" + nombre_campo + "' debe ser mayor que cero.")
-
-    return (True, numero, "")
-
-
-def validar_entero_no_negativo(texto, nombre_campo):
-    """
-    Funcionalidad:
-    Validar que el texto ingresado contenga solo dígitos y sea un entero mayor o igual a cero.
-
-    Entrada:
-    - texto(str): texto escrito por el usuario.
-    - nombre_campo(str): nombre del campo que se está validando.
-
-    Salida:
-    - resultado(tuple): tupla (es_valido(bool), numero(int), mensaje_error(str)).
-    """
-    texto_limpio = str(texto).strip()
-    if texto_limpio == "":
-        return (False, 0, "La cantidad para " + nombre_campo + " no puede estar vacía (usa 0 si no deseas elegir).")
-
-    if not texto_limpio.isdigit():
-        return (False, 0, "La cantidad para " + nombre_campo + " debe contener únicamente números enteros.")
-
-    try:
-        numero = int(texto_limpio)
-    except ValueError:
-        return (False, 0, "La cantidad para " + nombre_campo + " debe ser un número entero válido.")
 
     return (True, numero, "")
 
@@ -438,17 +528,17 @@ def validar_entero_no_negativo(texto, nombre_campo):
 def validar_apuesta_por_color(texto_apuesta, color_ficha):
     """
     Funcionalidad:
-    Verificar que la cantidad apostada sea un entero positivo y que el jugador tenga
-    suficientes fichas del color elegido.
+        Verifica que la cantidad apostada sea un entero positivo y que el jugador tenga
+        suficientes fichas del color elegido.
 
     Entrada:
-    - texto_apuesta(str): cantidad escrita en el campo de apuesta.
-    - color_ficha(str): color de ficha seleccionado.
+        - texto_apuesta(str): Cantidad escrita por el jugador en el campo de apuesta.
+        - color_ficha(str): Color de ficha seleccionado para realizar la apuesta.
 
     Salida:
-    - resultado(tuple): tupla (es_valida(bool), cantidad(int)).
+        - resultado(tuple): Tupla con el indicador de validez y la cantidad entera de fichas apostadas.
     """
-    es_valido, apuesta, mensaje = validar_entero_positivo(texto_apuesta, "fichas a apostar")
+    es_valido, apuesta, mensaje = validar_entero(texto_apuesta, "fichas a apostar", False)
     if not es_valido:
         messagebox.showwarning("Apuesta inválida", mensaje)
         return (False, 0)
@@ -470,14 +560,14 @@ def validar_apuesta_por_color(texto_apuesta, color_ficha):
 def avanzar_indices_rodillos(indices_actuales):
     """
     Funcionalidad:
-    Avanzar en una posición el índice de cada uno de los tres rodillos dentro de
-    MATRIZ_RODILLOS, volviendo a 0 al llegar al final de cada fila.
+        Avanza en una posición el índice de cada uno de los tres rodillos dentro de
+        MATRIZ_RODILLOS, volviendo a 0 al llegar al final de cada fila.
 
     Entrada:
-    - indices_actuales(list): lista de tres enteros con la columna actual de cada rodillo.
+        - indices_actuales(list): Lista de tres enteros con la columna actual de cada rodillo.
 
     Salida:
-    - simbolos(list): lista con los tres símbolos correspondientes a las nuevas posiciones.
+        - simbolos(list): Lista con los tres símbolos correspondientes a las nuevas posiciones.
     """
     simbolos = []
     fila = 0
@@ -494,16 +584,16 @@ def avanzar_indices_rodillos(indices_actuales):
 def evaluar_resultado_tragamonedas(simbolos_finales, apuesta, color_ficha):
     """
     Funcionalidad:
-    Revisar si la tupla de tres símbolos finales está en COMBINACIONES_GANADORAS,
-    actualizar fichas y puntos y devolver el mensaje de resultado.
+        Revisa si la tupla de tres símbolos finales está en COMBINACIONES_GANADORAS,
+        actualiza fichas y puntos y devuelve el mensaje de resultado.
 
     Entrada:
-    - simbolos_finales(tuple): tupla con los tres símbolos obtenidos al detenerse los rodillos.
-    - apuesta(int): cantidad de fichas apostadas.
-    - color_ficha(str): color de las fichas apostadas.
+        - simbolos_finales(tuple): Tupla con los tres símbolos obtenidos al detenerse los rodillos.
+        - apuesta(int): Cantidad de fichas apostadas en el giro.
+        - color_ficha(str): Color de las fichas apostadas en el giro.
 
     Salida:
-    - resultado(tuple): tupla (gano(bool), mensaje(str), color_texto(str)).
+        - resultado(tuple): Tupla con el indicador de victoria, el mensaje del resultado y el color del texto.
     """
     if simbolos_finales in COMBINACIONES_GANADORAS:
         multiplicador = COMBINACIONES_GANADORAS[simbolos_finales]
@@ -530,14 +620,14 @@ def evaluar_resultado_tragamonedas(simbolos_finales, apuesta, color_ficha):
 def generar_tirada_dados():
     """
     Funcionalidad:
-    Generar dos números aleatorios entre 1 y 6 correspondientes a los dos dados
-    y devolverlos en una tupla.
+        Genera dos números aleatorios entre 1 y 6 correspondientes a los dos dados
+        y los devuelve en una tupla.
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - resultado_tirada(tuple): tupla (dado_1(int), dado_2(int)).
+        - tirada(tuple): Tupla con el valor del primer dado y del segundo dado.
     """
     dado_1 = random.randint(1, 6)
     dado_2 = random.randint(1, 6)
@@ -547,15 +637,15 @@ def generar_tirada_dados():
 def verificar_acierto_dados(resultado_tirada, tipo_apuesta, numero_elegido):
     """
     Funcionalidad:
-    Comprobar si los dos dados obtenidos cumplen con el tipo de apuesta elegido.
+        Comprueba si los dos dados obtenidos cumplen con el tipo de apuesta elegido.
 
     Entrada:
-    - resultado_tirada(tuple): tupla (dado_1, dado_2) con los valores obtenidos.
-    - tipo_apuesta(str): tipo de apuesta ('par', 'impar', 'dobles' o 'sumaExacta').
-    - numero_elegido(int): número del 2 al 12 elegido cuando la apuesta es 'sumaExacta'.
+        - resultado_tirada(tuple): Tupla con los valores de los dos dados lanzados.
+        - tipo_apuesta(str): Modalidad de apuesta ('par', 'impar', 'dobles' o 'sumaExacta').
+        - numero_elegido(int): Suma objetivo entre 2 y 12, usada solo en sumaExacta.
 
     Salida:
-    - acierto(bool): True si acertó la apuesta, False en caso contrario.
+        - acierto(bool): True si el lanzamiento cumple la condición de la apuesta, False en caso contrario.
     """
     suma_dados = resultado_tirada[0] + resultado_tirada[1]
     if tipo_apuesta == "sumaExacta":
@@ -573,17 +663,17 @@ def verificar_acierto_dados(resultado_tirada, tipo_apuesta, numero_elegido):
 def ejecutar_jugada_dados(apuesta, color_ficha, tipo_apuesta, numero_elegido):
     """
     Funcionalidad:
-    Realizar una jugada de dados descontando la apuesta inicial, lanzando los dos dados,
-    verificando si hubo acierto y actualizando las fichas y los puntos.
+        Realiza una jugada de dados descontando la apuesta inicial, lanzando los dos dados,
+        verificando si hubo acierto y actualizando las fichas y los puntos.
 
     Entrada:
-    - apuesta(int): cantidad de fichas apostadas.
-    - color_ficha(str): color de ficha seleccionado.
-    - tipo_apuesta(str): tipo de apuesta ('par', 'impar', 'dobles', 'sumaExacta').
-    - numero_elegido(int): número elegido para suma exacta (2 a 12).
+        - apuesta(int): Cantidad de fichas apostadas en el lanzamiento.
+        - color_ficha(str): Color de las fichas apostadas.
+        - tipo_apuesta(str): Modalidad de apuesta elegida por el jugador.
+        - numero_elegido(int): Suma elegida entre 2 y 12 cuando es sumaExacta.
 
     Salida:
-    - resumen(tuple): tupla (resultado_tirada(tuple), suma_dados(int), mensaje(str), color_texto(str)).
+        - resultado(tuple): Tupla con la tirada de los dados, su suma, el mensaje y el color del texto.
     """
     modificar_fichas_juego(-apuesta, color_ficha)
     resultado_tirada = generar_tirada_dados()
@@ -615,41 +705,36 @@ def ejecutar_jugada_dados(apuesta, color_ficha, tipo_apuesta, numero_elegido):
 def calcular_totales_operacion_fichas(cantidades):
     """
     Funcionalidad:
-    Calcular el monto total en dólares (float) y la cantidad total de fichas (int)
-    a partir de las cantidades seleccionadas por color.
+        Calcula el monto total en dólares (float) y la cantidad total de fichas (int)
+        a partir de las cantidades seleccionadas por color consultando datos.VALOR_FICHAS.
 
     Entrada:
-    - cantidades(dict): diccionario con la cantidad entera elegida para cada color.
+        - cantidades(dict): Diccionario con la cantidad de fichas por cada color.
 
     Salida:
-    - totales(tuple): tupla (monto_total(float), total_fichas(int)).
+        - totales(tuple): Tupla con el monto total en dólares y la cantidad total de fichas.
     """
     monto_total = 0.0
     total_fichas = 0
-    i = 0
-    while i < len(ORDEN_COLORES):
-        color = ORDEN_COLORES[i]
+    for color in ORDEN_COLORES:
         cantidad = int(cantidades[color])
-        monto_total = monto_total + float(cantidad * valores_fichas[color])
+        monto_total = monto_total + float(cantidad * obtener_valor_ficha(color))
         total_fichas = total_fichas + cantidad
-        i = i + 1
     return (monto_total, total_fichas)
 
 
 def validar_disponibilidad_canje(cantidades):
     """
     Funcionalidad:
-    Verificar que el jugador tenga suficientes fichas de cada color antes de canjearlas.
+        Verifica que el jugador tenga suficientes fichas de cada color antes de canjearlas.
 
     Entrada:
-    - cantidades(dict): diccionario con las fichas a canjear por cada color.
+        - cantidades(dict): Diccionario con las cantidades de fichas a canjear por cada color.
 
     Salida:
-    - validacion(tuple): tupla (es_valido(bool), mensaje_error(str)).
+        - validacion(tuple): Tupla con el indicador booleano de disponibilidad y el mensaje de error.
     """
-    i = 0
-    while i < len(ORDEN_COLORES):
-        color = ORDEN_COLORES[i]
+    for color in ORDEN_COLORES:
         cantidad = cantidades[color]
         poseidas = obtener_fichas_color(color)
         if cantidad > poseidas:
@@ -658,54 +743,26 @@ def validar_disponibilidad_canje(cantidades):
                 " porque solo posees " + str(poseidas) + "."
             )
             return (False, mensaje)
-        i = i + 1
     return (True, "")
 
 
-def aplicar_compra_fichas(cantidades, costo_total):
+def convertir_cantidades_a_formato_e1(cantidades):
     """
     Funcionalidad:
-    Restar el costo total del dinero del jugador (manteniendo float), sumar las fichas
-    compradas en cada color y guardar los datos.
+        Convierte un diccionario de cantidades con llaves ('Rojo', 'Azul', 'Verde', 'Blanco')
+        al formato de llaves de datos.VALOR_FICHAS ('rojas', 'azules', 'verdes', 'blancas').
 
     Entrada:
-    - cantidades(dict): fichas compradas de cada color.
-    - costo_total(float): costo total en dólares.
+        - cantidades(dict): Diccionario con las cantidades por color en singular de la ventana de fichas.
 
     Salida:
-    - Ninguna.
+        - cantidades_e1(dict): Diccionario con las llaves de colores en plural requeridas por el módulo de datos.
     """
-    jugador_actual[1][0] = float(jugador_actual[1][0] - float(costo_total))
-    i = 0
-    while i < len(ORDEN_COLORES):
-        color = ORDEN_COLORES[i]
-        indice = obtener_indice_color(color)
-        jugador_actual[1][indice] = int(jugador_actual[1][indice]) + int(cantidades[color])
-        i = i + 1
-    guardar_datos_e1()
-
-
-def aplicar_canje_fichas(cantidades, dinero_recibir):
-    """
-    Funcionalidad:
-    Sumar el dinero recibido al saldo del jugador (manteniendo float), restar las fichas
-    canjeadas en cada color y guardar los datos.
-
-    Entrada:
-    - cantidades(dict): fichas canjeadas de cada color.
-    - dinero_recibir(float): dinero en dólares acreditado al jugador.
-
-    Salida:
-    - Ninguna.
-    """
-    jugador_actual[1][0] = float(jugador_actual[1][0] + float(dinero_recibir))
-    i = 0
-    while i < len(ORDEN_COLORES):
-        color = ORDEN_COLORES[i]
-        indice = obtener_indice_color(color)
-        jugador_actual[1][indice] = int(jugador_actual[1][indice]) - int(cantidades[color])
-        i = i + 1
-    guardar_datos_e1()
+    cantidades_e1 = {}
+    for color in ORDEN_COLORES:
+        llave_e1 = obtener_llave_color_e1(color)
+        cantidades_e1[llave_e1] = int(cantidades[color])
+    return cantidades_e1
 
 
 # FUNCIONES AUXILIARES DE INTERFAZ GRÁFICA (TKINTER)
@@ -713,16 +770,16 @@ def aplicar_canje_fichas(cantidades, dinero_recibir):
 def crear_titulo_ventana(ventana_padre, texto_titulo, tamano=16, pady=8):
     """
     Funcionalidad:
-    Crear y mostrar el título principal de una ventana.
+        Crea y muestra el título principal de una ventana.
 
     Entrada:
-    - ventana_padre(tk.Misc): ventana donde se colocará el título.
-    - texto_titulo(str): texto del título.
-    - tamano(int): tamaño de la letra.
-    - pady(int): espacio vertical.
+        - ventana_padre(Widget): Ventana donde se colocará el título.
+        - texto_titulo(str): Texto que mostrará la etiqueta del título.
+        - tamano(int): Tamaño de la fuente del título.
+        - pady(int): Espacio vertical exterior de la etiqueta.
 
     Salida:
-    - etiqueta_titulo(tk.Label): etiqueta creada.
+        - etiqueta_titulo(Label): Etiqueta de título creada y empaquetada en la ventana.
     """
     etiqueta_titulo = tk.Label(
         ventana_padre,
@@ -738,13 +795,13 @@ def crear_titulo_ventana(ventana_padre, texto_titulo, tamano=16, pady=8):
 def crear_panel_saldo_juego(ventana_padre):
     """
     Funcionalidad:
-    Crear las etiquetas que muestran el total de fichas, los puntos y el desglose por colores.
+        Crea las etiquetas que muestran el total de fichas, los puntos y el desglose por colores.
 
     Entrada:
-    - ventana_padre(tk.Misc): ventana donde se colocarán las etiquetas.
+        - ventana_padre(Widget): Ventana donde se colocarán las etiquetas de saldo.
 
     Salida:
-    - etiquetas_saldo(tuple): tupla (etiqueta_info(tk.Label), etiqueta_colores(tk.Label)).
+        - etiquetas(tuple): Tupla con la etiqueta de resumen general y la etiqueta de desglose por color.
     """
     etiqueta_info = tk.Label(
         ventana_padre,
@@ -771,14 +828,14 @@ def crear_panel_saldo_juego(ventana_padre):
 def actualizar_panel_saldo_juego(etiqueta_info, etiqueta_colores):
     """
     Funcionalidad:
-    Actualizar en pantalla el texto de las etiquetas de fichas totales, puntos y colores.
+        Actualiza en pantalla el texto de las etiquetas de fichas totales, puntos y colores.
 
     Entrada:
-    - etiqueta_info(tk.Label): etiqueta de fichas totales y puntos.
-    - etiqueta_colores(tk.Label): etiqueta de desglose por color.
+        - etiqueta_info(Label): Etiqueta que muestra el total de fichas y los puntos.
+        - etiqueta_colores(Label): Etiqueta que muestra el desglose de fichas por color.
 
     Salida:
-    - Ninguna.
+        - Ninguna: Actualiza el texto de ambas etiquetas sin retornar un valor.
     """
     etiqueta_info.config(
         text="Fichas disponibles: " + str(calcular_total_fichas()) +
@@ -790,13 +847,13 @@ def actualizar_panel_saldo_juego(etiqueta_info, etiqueta_colores):
 def crear_campo_entrada_apuesta(ventana_padre):
     """
     Funcionalidad:
-    Crear un cuadro con etiqueta y campo de texto para escribir la cantidad de fichas a apostar.
+        Crea un cuadro con etiqueta y campo de texto para escribir la cantidad de fichas a apostar.
 
     Entrada:
-    - ventana_padre(tk.Misc): ventana donde se colocará el campo de apuesta.
+        - ventana_padre(Widget): Ventana donde se colocará el campo de entrada de apuesta.
 
     Salida:
-    - entrada_apuesta(tk.Entry): campo de texto creado.
+        - campo_apuesta(Entry): Campo de texto creado para ingresar la cantidad de fichas a apostar.
     """
     marco_apuesta = tk.Frame(ventana_padre, bg="#1b4332")
     marco_apuesta.pack(pady=4)
@@ -818,21 +875,21 @@ def crear_campo_entrada_apuesta(ventana_padre):
 def crear_boton_estandar(padre, texto, comando, bg_color, fg_color="black", ancho=22, fuente=("Arial", 11, "bold"), pady=6, empaquetar=True):
     """
     Funcionalidad:
-    Crear un botón de Tkinter con el estilo visual del casino.
+        Crea un botón de Tkinter con el estilo visual del casino.
 
     Entrada:
-    - padre(tk.Widget): contenedor donde se colocará el botón.
-    - texto(str): texto del botón.
-    - comando(function): función que se ejecuta al hacer clic.
-    - bg_color(str): color de fondo.
-    - fg_color(str): color del texto.
-    - ancho(int): ancho del botón.
-    - fuente(tuple): fuente del botón.
-    - pady(int): espacio vertical.
-    - empaquetar(bool): True si se usa pack(), False si se colocará con grid().
+        - padre(Widget): Contenedor donde se colocará el botón.
+        - texto(str): Texto visible dentro del botón.
+        - comando(function): Función que se ejecuta al presionar el botón.
+        - bg_color(str): Color de fondo del botón.
+        - fg_color(str): Color del texto del botón.
+        - ancho(int): Ancho del botón en caracteres.
+        - fuente(tuple): Tupla con la familia, el tamaño y el estilo de la fuente.
+        - pady(int): Espacio vertical exterior del botón.
+        - empaquetar(bool): True si se empaqueta con pack, False si se posicionará con grid.
 
     Salida:
-    - boton(tk.Button): botón creado.
+        - boton(Button): Botón estándar creado con la configuración indicada.
     """
     boton = tk.Button(
         padre,
@@ -851,13 +908,14 @@ def crear_boton_estandar(padre, texto, comando, bg_color, fg_color="black", anch
 def crear_selector_color_ficha(ventana_padre):
     """
     Funcionalidad:
-    Crear el cuadro con botones de opción (Radiobutton) para elegir el color de ficha al apostar.
+        Crea el cuadro con botones de opción (Radiobutton) para elegir el color de ficha al apostar,
+        consultando el valor en dólares desde datos.VALOR_FICHAS.
 
     Entrada:
-    - ventana_padre(tk.Misc): ventana donde se colocará el selector.
+        - ventana_padre(Widget): Ventana donde se colocará el selector de color de ficha.
 
     Salida:
-    - resultado(tuple): tupla (color_seleccionado(tk.StringVar), botones_color(list)).
+        - selector(tuple): Tupla con la variable del color seleccionado y la lista de botones de opción.
     """
     marco_color = tk.LabelFrame(
         ventana_padre,
@@ -873,12 +931,11 @@ def crear_selector_color_ficha(ventana_padre):
     color_seleccionado = tk.StringVar(value="Blanco")
     botones_color = []
 
-    columna_color = 0
-    while columna_color < len(ORDEN_COLORES):
+    for columna_color in range(len(ORDEN_COLORES)):
         color = ORDEN_COLORES[columna_color]
         rb_color = tk.Radiobutton(
             marco_color,
-            text=color + " ($" + str(valores_fichas[color]) + ")",
+            text=color + " ($" + str(obtener_valor_ficha(color)) + ")",
             variable=color_seleccionado,
             value=color,
             font=("Arial", 9, "bold"),
@@ -890,7 +947,6 @@ def crear_selector_color_ficha(ventana_padre):
         )
         rb_color.grid(row=0, column=columna_color, padx=6, pady=2)
         botones_color.append(rb_color)
-        columna_color = columna_color + 1
 
     return (color_seleccionado, botones_color)
 
@@ -898,18 +954,17 @@ def crear_selector_color_ficha(ventana_padre):
 def crear_etiquetas_rodillos(marco_padre, simbolos_iniciales):
     """
     Funcionalidad:
-    Crear las tres etiquetas blancas que muestran los símbolos de los rodillos en la tragamonedas.
+        Crea las tres etiquetas blancas que muestran los símbolos de los rodillos en la tragamonedas.
 
     Entrada:
-    - marco_padre(tk.Frame): marco donde se colocarán los tres rodillos.
-    - simbolos_iniciales(list): lista con los tres símbolos iniciales.
+        - marco_padre(Frame): Marco contenedor donde se colocarán los tres rodillos.
+        - simbolos_iniciales(list): Lista con los tres símbolos iniciales a mostrar.
 
     Salida:
-    - etiquetas(list): lista con las tres etiquetas creadas.
+        - etiquetas_rodillos(list): Lista con las tres etiquetas gráficas de los rodillos.
     """
     etiquetas = []
-    indice = 0
-    while indice < 3:
+    for indice in range(3):
         etiqueta = tk.Label(
             marco_padre,
             text=simbolos_iniciales[indice],
@@ -923,28 +978,26 @@ def crear_etiquetas_rodillos(marco_padre, simbolos_iniciales):
         )
         etiqueta.grid(row=0, column=indice, padx=8, pady=8)
         etiquetas.append(etiqueta)
-        indice = indice + 1
     return etiquetas
 
 
 def crear_tabla_inventario_fichas(ventana_padre):
     """
     Funcionalidad:
-    Crear la tabla que muestra cada color de ficha, su valor en dólares, cuántas tiene
-    el jugador y el campo de texto para ingresar la cantidad a comprar o canjear.
+        Crea la tabla que muestra cada color de ficha, su valor en dólares desde
+        datos.VALOR_FICHAS, cuántas tiene el jugador y el campo de texto para comprar o canjear.
 
     Entrada:
-    - ventana_padre(tk.Misc): ventana donde se colocará la tabla.
+        - ventana_padre(Widget): Ventana donde se colocará la tabla de inventario de fichas.
 
     Salida:
-    - controles_tabla(tuple): tupla (etiquetas_cantidades(dict), entradas_cantidades(dict)).
+        - tabla(tuple): Tupla con el diccionario de etiquetas de inventario y el diccionario de campos de entrada.
     """
     marco_tabla = tk.Frame(ventana_padre, bg="#081c15", bd=2, relief="ridge", padx=10, pady=10)
     marco_tabla.pack(pady=10)
 
     encabezados = ["Color", "Valor ($)", "Tienes", "Cantidad"]
-    col_idx = 0
-    while col_idx < len(encabezados):
+    for col_idx in range(len(encabezados)):
         tk.Label(
             marco_tabla,
             text=encabezados[col_idx],
@@ -953,16 +1006,14 @@ def crear_tabla_inventario_fichas(ventana_padre):
             fg="#ffd166",
             width=10
         ).grid(row=0, column=col_idx, pady=4)
-        col_idx = col_idx + 1
 
     etiquetas_cantidades = {}
     entradas_cantidades = {}
 
-    i = 0
-    while i < len(ORDEN_COLORES):
+    for i in range(len(ORDEN_COLORES)):
         color = ORDEN_COLORES[i]
         fila = i + 1
-        valor_monetario = valores_fichas[color]
+        valor_monetario = obtener_valor_ficha(color)
         cantidad_poseida = obtener_fichas_color(color)
 
         tk.Label(
@@ -996,8 +1047,6 @@ def crear_tabla_inventario_fichas(ventana_padre):
         entrada.grid(row=fila, column=3, pady=5, padx=5)
         entradas_cantidades[color] = entrada
 
-        i = i + 1
-
     return (etiquetas_cantidades, entradas_cantidades)
 
 
@@ -1006,16 +1055,16 @@ def crear_tabla_inventario_fichas(ventana_padre):
 def asegurar_ventana_raiz():
     """
     Funcionalidad:
-    Asegurar que exista una única ventana principal tk.Tk() activa en la aplicación.
+        Asegura que exista una única ventana principal tk.Tk() activa en toda la aplicación.
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - ventana_raiz(tk.Tk): ventana raíz principal.
+        - ventana_raiz(Tk): Instancia raíz principal de Tkinter para la aplicación.
     """
     global ventana_raiz
-    if ventana_raiz == None:
+    if not ventana_raiz:
         ventana_raiz = tk.Tk()
     return ventana_raiz
 
@@ -1023,24 +1072,28 @@ def asegurar_ventana_raiz():
 def cerrar_aplicacion_completa():
     """
     Funcionalidad:
-    Cerrar la ventana secundaria (si existe) y la ventana raíz de Tkinter para finalizar el programa.
+        Cierra la ventana secundaria (si existe) y la ventana raíz de Tkinter para finalizar el programa.
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - Ninguna.
+        - Ninguna: Destruye las ventanas activas y finaliza la aplicación sin retornar un valor.
     """
     global ventana_raiz, ventana_secundaria, mainloop_iniciado
-    if ventana_secundaria != None:
+    if ventana_secundaria:
         if ventana_secundaria.winfo_exists():
             ventana_secundaria.destroy()
-        ventana_secundaria = None
+        ventana_secundaria = False
 
-    if ventana_raiz != None:
+    if ventana_raiz:
+        try:
+            ventana_raiz.quit()
+        except tk.TclError:
+            pass
         if ventana_raiz.winfo_exists():
             ventana_raiz.destroy()
-        ventana_raiz = None
+        ventana_raiz = False
 
     mainloop_iniciado = False
 
@@ -1048,38 +1101,35 @@ def cerrar_aplicacion_completa():
 def preparar_ventana_e2(titulo, geometria, es_principal, funcion_retorno):
     """
     Funcionalidad:
-    Preparar la ventana que se va a mostrar en pantalla, usando la ventana raíz tk.Tk()
-    para el menú principal y una ventana secundaria tk.Toplevel() para las demás pantallas.
+        Prepara la ventana que se va a mostrar en pantalla, usando la única ventana raíz tk.Tk()
+        para el menú principal y una ventana secundaria tk.Toplevel() para las demás pantallas.
 
     Entrada:
-    - titulo(str): título de la ventana.
-    - geometria(str): tamaño de la ventana en formato 'ANCHOxALTO'.
-    - es_principal(bool): True si es el menú principal, False si es una ventana secundaria.
-    - funcion_retorno(function): función que se ejecuta al cerrar la ventana con la X.
+        - titulo(str): Título que se mostrará en la barra superior de la ventana.
+        - geometria(str): Dimensiones de la ventana en formato ancho por alto.
+        - es_principal(bool): True si corresponde al menú principal, False si es una ventana secundaria.
+        - funcion_retorno(function): Función que se ejecuta al cerrar la ventana con el botón X.
 
     Salida:
-    - ventana(tk.Misc): ventana lista para colocarle los controles.
+        - ventana(Widget): Ventana configurada y lista para agregar los controles gráficos.
     """
     global ventana_secundaria
 
     raiz = asegurar_ventana_raiz()
 
-    if ventana_secundaria != None:
+    if ventana_secundaria:
         if ventana_secundaria.winfo_exists():
             ventana_secundaria.destroy()
-        ventana_secundaria = None
+        ventana_secundaria = False
 
-    if funcion_retorno != None:
+    if funcion_retorno:
         protocolo_cierre = funcion_retorno
     else:
         protocolo_cierre = cerrar_aplicacion_completa
 
     if es_principal:
-        hijos = raiz.winfo_children()
-        i = 0
-        while i < len(hijos):
-            hijos[i].destroy()
-            i = i + 1
+        for hijo in raiz.winfo_children():
+            hijo.destroy()
         raiz.deiconify()
         raiz.title(titulo)
         raiz.geometry(geometria)
@@ -1100,13 +1150,13 @@ def preparar_ventana_e2(titulo, geometria, es_principal, funcion_retorno):
 def iniciar_bucle_principal_si_corresponde():
     """
     Funcionalidad:
-    Iniciar el mainloop() de la ventana raíz una sola vez.
+        Inicia el mainloop() de la única ventana raíz una sola vez.
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - Ninguna.
+        - Ninguna: Inicia el bucle principal de eventos de Tkinter sin retornar un valor.
     """
     global mainloop_iniciado
     raiz = asegurar_ventana_raiz()
@@ -1119,18 +1169,18 @@ def iniciar_bucle_principal_si_corresponde():
 def iniciar_aplicacion():
     """
     Funcionalidad:
-    Punto de entrada de casino.py (módulo de E2): crea la ventana raíz y abre
-    ventana_sesion() si el módulo de E1 fue conectado, o abre menu_principal() en modo de prueba.
+        Punto de entrada de casino.py: asegura la única ventana raíz tk.Tk(),
+        abre la ventana de sesión de E1 (si está conectada) o el menú principal, e inicia el único mainloop().
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - Ninguna.
+        - Ninguna: Inicializa la ventana raíz, abre la sesión y arranca el bucle principal sin retornar un valor.
     """
     asegurar_ventana_raiz()
     funcion_sesion_e1 = enlaces_e1["ventana_sesion"]
-    if funcion_sesion_e1 != None:
+    if funcion_sesion_e1:
         funcion_sesion_e1()
         iniciar_bucle_principal_si_corresponde()
     else:
@@ -1142,14 +1192,14 @@ def iniciar_aplicacion():
 def menu_principal():
     """
     Funcionalidad:
-    Mostrar el menú principal con el username del jugador y los cinco botones
-    obligatorios: Jugar, Fichas, Ranking, Análisis y Cerrar sesión.
+        Muestra el menú principal con el username del jugador y los cinco botones
+        obligatorios: Jugar, Fichas, Ranking, Análisis y Cerrar sesión.
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - Ninguna.
+        - Ninguna: Construye y muestra la ventana del menú principal sin retornar un valor.
     """
     ventana = preparar_ventana_e2("Casino - Menú Principal", "460x460", True, cerrar_aplicacion_completa)
 
@@ -1187,47 +1237,55 @@ def menu_principal():
     def ir_ranking():
         """
         Funcionalidad:
-        Abrir la ventana de Ranking de E1.
+            Abre la ventana de Ranking de E1.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Abre la funcionalidad de ranking conectada con E1 sin retornar un valor.
         """
         abrir_funcionalidad_e1("ranking", "Ranking")
 
     def ir_analisis():
         """
         Funcionalidad:
-        Abrir la ventana de Análisis de E1.
+            Abre la ventana de Análisis de E1.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Abre la funcionalidad de análisis conectada con E1 sin retornar un valor.
         """
         abrir_funcionalidad_e1("analisis", "Análisis")
 
     def ir_cerrar_sesion():
         """
         Funcionalidad:
-        Guardar los datos del jugador y volver a la ventana de sesión de E1;
-        si E1 aún no está conectado, mostrar un aviso sin cerrar la aplicación.
+            Solicita confirmación al jugador antes de cerrar la sesión; si confirma,
+            guarda los datos del jugador, limpia jugador_actual de la memoria y regresa a la ventana de sesión de E1.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Solicita confirmación, guarda los datos y cierra la sesión activa sin retornar un valor.
         """
+        confirmacion = messagebox.askyesno(
+            "Confirmar cierre de sesión",
+            "¿Estás seguro de que deseas cerrar la sesión actual?"
+        )
+        if not confirmacion:
+            return
+
         guardar_datos_e1()
         funcion_cerrar = enlaces_e1["cerrar_sesion"]
         funcion_sesion = enlaces_e1["ventana_sesion"]
-        if funcion_cerrar != None:
+        if funcion_cerrar:
             funcion_cerrar()
-        elif funcion_sesion != None:
+        elif funcion_sesion:
+            limpiar_jugador_actual()
             funcion_sesion()
         else:
             messagebox.showwarning(
@@ -1249,14 +1307,14 @@ def menu_principal():
 def ventana_juegos():
     """
     Funcionalidad:
-    Mostrar la ventana de juegos con los botones Ruleta, Tragamonedas, Blackjack y Dados,
-    la cantidad de fichas disponibles y el botón para volver al menú principal.
+        Muestra la ventana de juegos con los botones Ruleta, Tragamonedas, Blackjack y Dados,
+        la cantidad de fichas disponibles y el botón para volver al menú principal.
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - Ninguna.
+        - Ninguna: Construye y muestra la ventana selectora de juegos sin retornar un valor.
     """
     ventana = preparar_ventana_e2("Casino - Ventana de Juegos", "460x450", False, menu_principal)
 
@@ -1293,26 +1351,26 @@ def ventana_juegos():
     def abrir_ruleta():
         """
         Funcionalidad:
-        Abrir el juego de Ruleta de E1.
+            Abre el juego de Ruleta de E1.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Abre el juego de ruleta conectado con E1 sin retornar un valor.
         """
         abrir_funcionalidad_e1("ruleta", "Ruleta")
 
     def abrir_blackjack():
         """
         Funcionalidad:
-        Abrir el juego de Blackjack de E1.
+            Abre el juego de Blackjack de E1.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Abre el juego de blackjack conectado con E1 sin retornar un valor.
         """
         abrir_funcionalidad_e1("blackjack", "Blackjack")
 
@@ -1331,14 +1389,14 @@ def ventana_juegos():
 def tragamonedas():
     """
     Funcionalidad:
-    Mostrar la ventana del juego de tragamonedas de tres rodillos, animar el giro
-    recorriendo MATRIZ_RODILLOS y evaluar las combinaciones ganadoras.
+        Muestra la ventana del juego de tragamonedas de tres rodillos, anima el giro
+        recorriendo MATRIZ_RODILLOS y evalúa las combinaciones ganadoras.
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - Ninguna.
+        - Ninguna: Construye y muestra la interfaz gráfica del juego de tragamonedas sin retornar un valor.
     """
     estado_juego = {
         "girando": False,
@@ -1351,13 +1409,13 @@ def tragamonedas():
     def intentar_salir_tragamonedas():
         """
         Funcionalidad:
-        Impedir que el jugador cierre o salga de la ventana mientras los rodillos están girando.
+            Impide que el jugador cierre o salga de la ventana mientras los rodillos están girando.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Verifica si los rodillos están girando antes de volver a la ventana de juegos sin retornar un valor.
         """
         if estado_juego["girando"]:
             messagebox.showinfo(
@@ -1399,34 +1457,32 @@ def tragamonedas():
     def cambiar_estado_controles(estado):
         """
         Funcionalidad:
-        Habilitar o deshabilitar los botones y entradas mientras los rodillos giran.
+            Habilita o deshabilita los botones y entradas mientras los rodillos giran.
 
         Entrada:
-        - estado(str): 'normal' o 'disabled'.
+            - estado(str): Estado de activación normal o deshabilitado para los controles del juego.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Actualiza el estado de los botones y selectores de la ventana sin retornar un valor.
         """
         boton_girar.config(state=estado)
         entrada_apuesta.config(state=estado)
         boton_jugar_otra_vez.config(state=estado)
         boton_volver.config(state=estado)
-        i = 0
-        while i < len(botones_color):
-            botones_color[i].config(state=estado)
-            i = i + 1
+        for boton in botones_color:
+            boton.config(state=estado)
 
     def finalizar_giro():
         """
         Funcionalidad:
-        Detener el giro, formar la tupla con los tres símbolos finales, evaluar el resultado
-        y volver a habilitar los botones.
+            Detiene el giro, forma la tupla con los tres símbolos finales, evalúa el resultado
+            y vuelve a habilitar los botones.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Evalúa la combinación final de los rodillos y actualiza los saldos sin retornar un valor.
         """
         if not ventana.winfo_exists():
             return
@@ -1438,10 +1494,8 @@ def tragamonedas():
             MATRIZ_RODILLOS[2][indices[2]]
         )
 
-        i = 0
-        while i < 3:
+        for i in range(3):
             etiquetas_rodillos[i].config(text=simbolos_finales[i])
-            i = i + 1
 
         _, mensaje, color_texto = evaluar_resultado_tragamonedas(
             simbolos_finales, estado_juego["apuesta"], estado_juego["color"]
@@ -1455,24 +1509,22 @@ def tragamonedas():
     def animar_rodillos():
         """
         Funcionalidad:
-        Avanzar un paso de animación en los tres rodillos cada INTERVALO_ANIMACION_MS
-        milisegundos hasta completar PASOS_ANIMACION pasos.
+            Avanza un paso de animación en los tres rodillos cada INTERVALO_ANIMACION_MS
+            milisegundos hasta completar PASOS_ANIMACION pasos.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Ejecuta un paso de la animación secuencial de los rodillos sin retornar un valor.
         """
         if not ventana.winfo_exists():
             return
 
         if estado_juego["paso"] < PASOS_ANIMACION:
             nuevos_simbolos = avanzar_indices_rodillos(estado_juego["indices"])
-            i = 0
-            while i < 3:
+            for i in range(3):
                 etiquetas_rodillos[i].config(text=nuevos_simbolos[i])
-                i = i + 1
 
             estado_juego["paso"] = estado_juego["paso"] + 1
             ventana.after(INTERVALO_ANIMACION_MS, animar_rodillos)
@@ -1482,13 +1534,13 @@ def tragamonedas():
     def iniciar_giro():
         """
         Funcionalidad:
-        Validar la apuesta, descontar las fichas apostadas e iniciar la animación de los rodillos.
+            Valida la apuesta, descuenta las fichas apostadas e inicia la animación de los rodillos.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Valida la apuesta, descuenta las fichas e inicia la animación de giro sin retornar un valor.
         """
         if estado_juego["girando"]:
             return
@@ -1519,13 +1571,13 @@ def tragamonedas():
     def preparar_nuevo_juego():
         """
         Funcionalidad:
-        Reiniciar el campo de apuesta y el mensaje en pantalla para jugar otra vez.
+            Reinicia el campo de apuesta y el mensaje en pantalla para jugar otra vez.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Restablece el campo de apuesta y los rodillos para una nueva jugada sin retornar un valor.
         """
         if estado_juego["girando"]:
             return
@@ -1555,14 +1607,14 @@ def tragamonedas():
 def dados():
     """
     Funcionalidad:
-    Mostrar la ventana del juego de dados permitiendo elegir color y cantidad de fichas,
-    seleccionar el tipo de apuesta desde MATRIZ_OPCIONES_DADOS y lanzar los dos dados.
+        Muestra la ventana del juego de dados permitiendo elegir color y cantidad de fichas,
+        seleccionar el tipo de apuesta desde MATRIZ_OPCIONES_DADOS y lanzar los dos dados.
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - Ninguna.
+        - Ninguna: Construye y muestra la interfaz gráfica del juego de dados sin retornar un valor.
     """
     ventana = preparar_ventana_e2("Casino - Juego de Dados", "550x620", False, ventana_juegos)
 
@@ -1592,10 +1644,8 @@ def dados():
 
     tipo_seleccionado = tk.StringVar(value="par")
 
-    fila_rb = 0
-    while fila_rb < len(MATRIZ_OPCIONES_DADOS):
-        col_rb = 0
-        while col_rb < len(MATRIZ_OPCIONES_DADOS[fila_rb]):
+    for fila_rb in range(len(MATRIZ_OPCIONES_DADOS)):
+        for col_rb in range(len(MATRIZ_OPCIONES_DADOS[fila_rb])):
             clave_tipo = MATRIZ_OPCIONES_DADOS[fila_rb][col_rb]
             rb = tk.Radiobutton(
                 marco_tipo,
@@ -1610,8 +1660,6 @@ def dados():
                 activeforeground="white"
             )
             rb.grid(row=fila_rb, column=col_rb, sticky="w", padx=12, pady=2)
-            col_rb = col_rb + 1
-        fila_rb = fila_rb + 1
 
     marco_suma = tk.Frame(ventana, bg="#1b4332")
     marco_suma.pack(pady=3)
@@ -1653,14 +1701,14 @@ def dados():
     def lanzar_dados():
         """
         Funcionalidad:
-        Validar la apuesta y la suma exacta (si aplica), ejecutar la tirada de dados
-        y mostrar la tupla obtenida y el resultado en pantalla.
+            Valida la apuesta y la suma exacta (si aplica), ejecuta la tirada de dados
+            y muestra la tupla obtenida y el resultado en pantalla.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Valida la apuesta, ejecuta el lanzamiento de dados y actualiza la ventana sin retornar un valor.
         """
         color_ficha = color_seleccionado.get()
         es_valida, apuesta = validar_apuesta_por_color(entrada_apuesta.get(), color_ficha)
@@ -1671,8 +1719,8 @@ def dados():
         numero_elegido = 0
 
         if tipo == "sumaExacta":
-            es_suma_valida, numero_elegido, error_suma = validar_entero_positivo(
-                entrada_suma_exacta.get(), "Suma exacta"
+            es_suma_valida, numero_elegido, error_suma = validar_entero(
+                entrada_suma_exacta.get(), "Suma exacta", False
             )
             if not es_suma_valida:
                 messagebox.showwarning("Suma inválida", error_suma)
@@ -1694,13 +1742,13 @@ def dados():
     def jugar_nuevamente():
         """
         Funcionalidad:
-        Reiniciar los textos de resultado para realizar una nueva tirada de dados.
+            Reinicia los textos de resultado para realizar una nueva tirada de dados.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Limpia los campos de entrada y restablece las etiquetas para otro lanzamiento sin retornar un valor.
         """
         etiqueta_dados.config(text="Resultado tirada (tupla): (-, -)")
         etiqueta_resultado.config(
@@ -1727,14 +1775,14 @@ def dados():
 def ventana_fichas():
     """
     Funcionalidad:
-    Mostrar la ventana de compra y canje de fichas con la tabla de colores y valores,
-    permitiendo comprar fichas con dinero o canjear fichas por dinero.
+        Muestra la ventana de compra y canje de fichas con la tabla de colores y valores,
+        permitiendo comprar fichas con dinero o canjear fichas por dinero mediante las funciones de datos.py.
 
     Entrada:
-    - Ninguna.
+        - Ninguna.
 
     Salida:
-    - Ninguna.
+        - Ninguna: Construye y muestra la ventana de compra y canje de fichas sin retornar un valor.
     """
     ventana = preparar_ventana_e2("Casino - Administración de Fichas", "550x530", False, menu_principal)
 
@@ -1755,65 +1803,60 @@ def ventana_fichas():
     def refrescar_vista_fichas():
         """
         Funcionalidad:
-        Actualizar en pantalla el dinero disponible, las cantidades de fichas por color
-        y reiniciar las cajas de texto a 0.
+            Actualiza en pantalla el dinero disponible, las cantidades de fichas por color
+            y reinicia las cajas de texto a 0.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Actualiza las etiquetas de dinero y fichas y limpia las entradas sin retornar un valor.
         """
         etiqueta_dinero.config(
-            text="Dinero disponible: $" + str(jugador_actual[1][0]) +
+            text="Dinero disponible: $" + (jugador_actual[1][0]) +
                  "   |   Total de fichas: " + str(calcular_total_fichas())
         )
-        i = 0
-        while i < len(ORDEN_COLORES):
-            color = ORDEN_COLORES[i]
+        for color in ORDEN_COLORES:
             etiquetas_cantidades[color].config(text=str(obtener_fichas_color(color)))
             entradas_cantidades[color].delete(0, tk.END)
             entradas_cantidades[color].insert(0, "0")
-            i = i + 1
 
     def leer_cantidades_ingresadas():
         """
         Funcionalidad:
-        Leer y validar las cantidades escritas por el jugador en cada color de ficha.
+            Lee y valida las cantidades escritas por el jugador en cada color de ficha
+            utilizando validar_entero con permitir_cero=True.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - seleccion(dict): diccionario con las cantidades por color, o None si hubo un dato inválido.
+            - cantidades(dict): Diccionario con las cantidades enteras por color o un diccionario vacío si algún valor es inválido.
         """
         seleccion = {}
-        i = 0
-        while i < len(ORDEN_COLORES):
-            color = ORDEN_COLORES[i]
+        for color in ORDEN_COLORES:
             texto = entradas_cantidades[color].get()
-            es_valido, numero, mensaje_error = validar_entero_no_negativo(texto, "color " + color)
+            es_valido, numero, mensaje_error = validar_entero(texto, "color " + color, True)
             if not es_valido:
                 messagebox.showwarning("Cantidad inválida", mensaje_error)
-                return None
+                return {}
             seleccion[color] = numero
-            i = i + 1
         return seleccion
 
     def comprar_fichas():
         """
         Funcionalidad:
-        Validar la compra de fichas, pedir confirmación al jugador y descontar el dinero
-        sumando las fichas compradas.
+            Valida la compra de fichas, solicita confirmación al jugador y ejecuta
+            la compra y persistencia a través de datos.comprarFichas.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Valida las cantidades, solicita confirmación y ejecuta la compra de fichas sin retornar un valor.
         """
         cantidades = leer_cantidades_ingresadas()
-        if cantidades == None:
+        if not cantidades:
             return
 
         costo_total, total_fichas_compra = calcular_totales_operacion_fichas(cantidades)
@@ -1837,24 +1880,34 @@ def ventana_fichas():
         )
 
         if confirmacion:
-            aplicar_compra_fichas(cantidades, costo_total)
-            refrescar_vista_fichas()
-            messagebox.showinfo("Compra exitosa", "Se compraron las fichas correctamente.")
+            cantidades_e1 = convertir_cantidades_a_formato_e1(cantidades)
+            respaldo_recursos = list(jugador_actual[1])
+            try:
+                datos.comprarFichas(jugador_actual, cantidades_e1)
+                refrescar_vista_fichas()
+                messagebox.showinfo("Compra exitosa", "Se compraron las fichas correctamente.")
+            except (ValueError, TypeError, OSError, pickle.UnpicklingError, EOFError) as error:
+                jugador_actual[1] = respaldo_recursos
+                refrescar_vista_fichas()
+                messagebox.showerror(
+                    "Error al guardar la compra",
+                    "No se pudo completar y guardar la compra de fichas: " + str(error)
+                )
 
     def canjear_fichas():
         """
         Funcionalidad:
-        Validar el canje de fichas, pedir confirmación al jugador y sumar el dinero
-        descontando las fichas canjeadas.
+            Valida el canje de fichas, solicita confirmación al jugador y ejecuta
+            el canje y persistencia a través de datos.canjearFichas.
 
         Entrada:
-        - Ninguna.
+            - Ninguna.
 
         Salida:
-        - Ninguna.
+            - Ninguna: Valida las cantidades, solicita confirmación y ejecuta el canje de fichas sin retornar un valor.
         """
         cantidades = leer_cantidades_ingresadas()
-        if cantidades == None:
+        if not cantidades:
             return
 
         es_valido, error_canje = validar_disponibilidad_canje(cantidades)
@@ -1875,12 +1928,22 @@ def ventana_fichas():
         )
 
         if confirmacion:
-            aplicar_canje_fichas(cantidades, dinero_recibir)
-            refrescar_vista_fichas()
-            messagebox.showinfo(
-                "Canje exitoso",
-                "Se canjearon las fichas y se sumó $" + str(dinero_recibir) + " a tu dinero disponible."
-            )
+            cantidades_e1 = convertir_cantidades_a_formato_e1(cantidades)
+            respaldo_recursos = list(jugador_actual[1])
+            try:
+                datos.canjearFichas(jugador_actual, cantidades_e1)
+                refrescar_vista_fichas()
+                messagebox.showinfo(
+                    "Canje exitoso",
+                    "Se canjearon las fichas y se sumó $" + str(dinero_recibir) + " a tu dinero disponible."
+                )
+            except (ValueError, TypeError, OSError, pickle.UnpicklingError, EOFError) as error:
+                jugador_actual[1] = respaldo_recursos
+                refrescar_vista_fichas()
+                messagebox.showerror(
+                    "Error al guardar el canje",
+                    "No se pudo completar y guardar el canje de fichas: " + str(error)
+                )
 
     marco_botones = tk.Frame(ventana, bg="#1b4332")
     marco_botones.pack(pady=10)
