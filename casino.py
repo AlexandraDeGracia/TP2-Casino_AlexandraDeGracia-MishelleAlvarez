@@ -11,15 +11,18 @@ import random
 import datos
 import sesion
 
-colores = ("Rojo", "Azul", "Verde", "Blanco")
-llavesColores = ("rojas", "azules", "verdes", "blancas")
+colores = ["Rojo", "Azul", "Verde", "Blanco"]
+llavesColores = ["rojas", "azules", "verdes", "blancas"]
 
+# Matriz de rodillos: cada fila es un rodillo
 matrizRodillos = [
     ["Cereza", "Limon", "Campana", "Estrella", "Siete"],
     ["Cereza", "Limon", "Campana", "Estrella", "Siete"],
     ["Cereza", "Limon", "Campana", "Estrella", "Siete"]
 ]
 
+# Diccionario de combinaciones ganadoras: la llave es una tupla con los 3 simbolos
+# y el valor es el multiplicador (las fichas se duplican)
 combinacionesGanadoras = {
     ("Cereza", "Cereza", "Cereza"): 2,
     ("Limon", "Limon", "Limon"): 2,
@@ -28,8 +31,10 @@ combinacionesGanadoras = {
     ("Siete", "Siete", "Siete"): 2
 }
 
+# Diccionario de pagos de los dados
 pagosDados = {"par": 2, "impar": 2, "dobles": 5, "sumaExacta": 12}
 
+# Matriz con las opciones de apuesta de los dados
 matrizOpcionesDados = [
     ["par", "impar"],
     ["dobles", "sumaExacta"]
@@ -38,83 +43,89 @@ matrizOpcionesDados = [
 # [(username, nombre, apellido), [dinero, rojas, azules, verdes, blancas], puntos]
 jugador = [("", "", ""), [0.0, 0, 0, 0, 0], 0]
 
-ventanaRaiz = ""
-ventanaActual = ""
-estaGirando = False
+# Estado del programa:
+# raiz = ventana principal, actual = ventana abierta, girando = si la tragamonedas gira
+# indices = posicion actual de cada rodillo
+estado = {"raiz": "", "actual": "", "girando": False, "indices": [0, 0, 0]}
+
+# Aqui se guardan los objetos de la ventana que se esta usando (etiquetas, campos, etc.)
+widgets = {}
 
 # Aqui se conecta E1
 modulosE1 = {"ruleta": "", "blackjack": "", "ranking": "", "analisis": ""}
 
 
-# datos del jugador
 
+# Datos del jugador
 def fichasDe(color):
     """
     Funcionalidad:
-        Obtiene la cantidad de fichas que posee el jugador de un color determinado.
+        Devuelve cuantas fichas tiene el jugador de un color.
 
     Entrada:
-        - color(str): Nombre del color de la ficha a consultar.
+        - color(str): Nombre del color.
 
     Salida:
-        - cantidad(int): Cantidad de fichas disponibles de ese color.
+        - cantidad(int): Fichas de ese color.
     """
-    return int(jugador[1][colores.index(color) + 1])
+    posicion = colores.index(color)
+    return int(jugador[1][posicion + 1])
 
 
 def valorFicha(color):
     """
     Funcionalidad:
-        Consulta en el diccionario de datos el valor monetario en dolares de una ficha.
+        Devuelve el valor en dolares de una ficha.
 
     Entrada:
-        - color(str): Nombre del color de la ficha a consultar.
+        - color(str): Nombre del color.
 
     Salida:
-        - valor(int): Valor monetario unitario de la ficha.
+        - valor(int): Valor de la ficha.
     """
-    return int(datos.VALOR_FICHAS[llavesColores[colores.index(color)]])
+    posicion = colores.index(color)
+    return int(datos.VALOR_FICHAS[llavesColores[posicion]])
 
 
 def totalFichas():
     """
     Funcionalidad:
-        Calcula la suma total de fichas de todos los colores pertenecientes al jugador.
+        Suma todas las fichas del jugador.
 
     Entrada:
         - Ninguna.
 
     Salida:
-        - total(int): Suma total de fichas del jugador.
+        - total(int): Total de fichas.
     """
     total = 0
     for color in colores:
-        total += fichasDe(color)
+        total = total + fichasDe(color)
     return total
 
 
 def textoSaldo():
     """
     Funcionalidad:
-        Construye el texto informativo con el desglose de fichas por color, total y puntaje.
+        Arma el texto con las fichas de cada color, el total y los puntos.
 
     Entrada:
         - Ninguna.
 
     Salida:
-        - texto(str): Cadena formateada para mostrar en las etiquetas de saldo.
+        - texto(str): Texto para mostrar en pantalla.
     """
-    textoFichas = ""
-    for posicion in range(4):
-        textoFichas += colores[posicion] + ": " + str(jugador[1][posicion + 1]) + "   "
-    textoTotal = "Total: " + str(totalFichas()) + "   Puntos: " + str(jugador[2])
-    return textoFichas + "\n" + textoTotal
+    texto = ""
+    for i in range(4):
+        texto = texto + colores[i] + ": " + str(jugador[1][i + 1]) + "   "
+    texto = texto + "\nTotal: " + str(totalFichas()) + "   Puntos: " + str(jugador[2])
+    return texto
 
 
 def guardar():
     """
     Funcionalidad:
-        Guarda los datos actualizados del jugador en el archivo local de jugadores.
+        Guarda los datos del jugador en el archivo.
 
     Entrada:
         - Ninguna.
@@ -127,23 +138,44 @@ def guardar():
     except Exception as error:
         messagebox.showerror("Error al guardar", str(error))
 
+def esEntero(texto):
+    """
+    Funcionalidad:
+        Revisa que el texto tenga solo digitos del 0 al 9.
+
+    Entrada:
+        - texto(str): Texto a revisar.
+
+    Salida:
+        - valido(bool): True si es un entero sin signo, False si no.
+    """
+    if texto == "":
+        return False
+    for caracter in texto:
+        if caracter not in "0123456789":
+            return False
+    return True
 
 def validarApuesta(textoApuesta, color):
     """
     Funcionalidad:
-        Valida que la cantidad escrita sea un numero entero positivo y que existan fichas suficientes.
+        Revisa que la apuesta sea un entero mayor que cero y que alcancen las fichas.
 
     Entrada:
-        - textoApuesta(str): Texto ingresado en el campo de apuesta.
-        - color(str): Color de ficha seleccionado para la jugada.
+        - textoApuesta(str): Lo que escribio el usuario.
+        - color(str): Color de ficha elegido.
 
     Salida:
-        - apuesta(int): Monto entero validado o cero si la entrada es invalida.
+        - apuesta(int): La apuesta o 0 si es invalida.
     """
-    if not textoApuesta.strip().isdecimal() or int(textoApuesta) <= 0:
+    textoApuesta = textoApuesta.strip()
+    if not esEntero(textoApuesta):
         messagebox.showwarning("Apuesta invalida", "Escribe un numero entero mayor que cero")
         return 0
     apuesta = int(textoApuesta)
+    if apuesta <= 0:
+        messagebox.showwarning("Apuesta invalida", "Escribe un numero entero mayor que cero")
+        return 0
     if apuesta > fichasDe(color):
         messagebox.showwarning("Fichas insuficientes", "Solo tienes " + str(fichasDe(color)) + " ficha(s) " + color)
         return 0
@@ -153,34 +185,34 @@ def validarApuesta(textoApuesta, color):
 def liquidar(apuesta, color, gano, multiplicador):
     """
     Funcionalidad:
-        Acredita las fichas ganadas, suma o resta puntos y guarda los cambios en el archivo.
+        Paga las fichas si gano, cambia los puntos y guarda.
+        El pago incluye la apuesta devuelta (la apuesta ya fue descontada).
 
     Entrada:
-        - apuesta(int): Cantidad de fichas apostadas.
-        - color(str): Color de ficha apostada.
-        - gano(bool): Indicador booleano de si el jugador gano o perdio.
-        - multiplicador(int): Multiplicador de ganancia de la apuesta.
+        - apuesta(int): Fichas apostadas.
+        - color(str): Color apostado.
+        - gano(bool): True si gano, False si perdio.
+        - multiplicador(int): Veces la apuesta que recibe si gana.
 
     Salida:
-        - resultado(tuple): Tupla con el pago total y la ganancia neta obtenida.
+        - pagoTotal(int): Fichas que recibe el jugador.
     """
     pagoTotal = 0
     if gano:
         pagoTotal = apuesta * multiplicador
-        jugador[1][colores.index(color) + 1] += pagoTotal
-        jugador[2] += 2
+        jugador[1][colores.index(color) + 1] = jugador[1][colores.index(color) + 1] + pagoTotal
+        jugador[2] = jugador[2] + 2
     else:
-        jugador[2] -= 1
+        jugador[2] = jugador[2] - 1
     guardar()
-    return (pagoTotal, pagoTotal - apuesta)
+    return pagoTotal
 
 
-# ventanas
-
+# Ventanas y elementos
 def cerrarTodo():
     """
     Funcionalidad:
-        Finaliza la aplicacion destruyendo la ventana raiz de Tkinter.
+        Cierra el programa.
 
     Entrada:
         - Ninguna.
@@ -188,95 +220,90 @@ def cerrarTodo():
     Salida:
         - Ninguna.
     """
-    ventanaRaiz.destroy()
+    estado["raiz"].destroy()
 
 
 def nuevaVentana(titulo, tamano, funcionAlCerrar):
     """
     Funcionalidad:
-        Destruye la ventana secundaria actual y crea una nueva ventana Toplevel configurada.
+        Cierra la ventana actual y crea una nueva.
 
     Entrada:
-        - titulo(str): Titulo que aparecera en la barra superior.
-        - tamano(str): Dimensiones de la ventana en formato ancho por alto.
-        - funcionAlCerrar(function): Protocolo a ejecutar al presionar el boton de cerrar.
+        - titulo(str): Titulo de la ventana.
+        - tamano(str): Tamano, por ejemplo "400x300".
+        - funcionAlCerrar(function): Funcion que se ejecuta al cerrar con la X.
 
     Salida:
-        - ventanaNueva(Toplevel): Instancia de la nueva ventana secundaria creada.
+        - ventana(Toplevel): La ventana nueva.
     """
-    global ventanaActual
-    if ventanaActual:
-        ventanaActual.destroy()
-    ventanaNueva = tk.Toplevel(ventanaRaiz)
-    ventanaNueva.title(titulo)
-    ventanaNueva.geometry(tamano)
-    ventanaNueva.protocol("WM_DELETE_WINDOW", funcionAlCerrar)
-    ventanaActual = ventanaNueva
-    return ventanaNueva
+    if estado["actual"] != "":
+        estado["actual"].destroy()
+    ventana = tk.Toplevel(estado["raiz"])
+    ventana.title(titulo)
+    ventana.geometry(tamano)
+    ventana.protocol("WM_DELETE_WINDOW", funcionAlCerrar)
+    estado["actual"] = ventana
+    return ventana
 
 
-def crearBoton(ventanaPadre, textoBoton, funcionBoton):
+def crearBoton(ventana, texto, funcion):
     """
     Funcionalidad:
-        Crea y empaqueta un boton estandar con texto y comando asignado.
+        Crea un boton y lo coloca en la ventana.
 
     Entrada:
-        - ventanaPadre(Widget): Contenedor donde se agregara el boton.
-        - textoBoton(str): Texto visible del boton.
-        - funcionBoton(function): Accion que ejecutara el boton al ser presionado.
+        - ventana(Widget): Donde va el boton.
+        - texto(str): Texto del boton.
+        - funcion(function): Funcion que ejecuta el boton.
 
     Salida:
         - Ninguna.
     """
-    tk.Button(ventanaPadre, text=textoBoton, width=24, command=funcionBoton).pack(pady=4)
+    tk.Button(ventana, text=texto, width=24, command=funcion).pack(pady=4)
 
 
-def crearSelectorColor(ventanaPadre):
+def crearSelectorColor(ventana):
     """
     Funcionalidad:
-        Crea y coloca los radiobuttons correspondientes a los cuatro colores de ficha.
+        Crea los cuatro radiobuttons para escoger el color de ficha.
 
     Entrada:
-        - ventanaPadre(Widget): Contenedor donde se ubicaran las opciones de color.
+        - ventana(Widget): Donde van los radiobuttons.
 
     Salida:
-        - colorElegido(StringVar): Variable de Tkinter que almacena el color seleccionado.
+        - Ninguna (la variable queda en widgets["color"]).
     """
-    colorElegido = tk.StringVar(value="Blanco")
-    marcoColores = tk.Frame(ventanaPadre)
-    marcoColores.pack(pady=5)
-    for posicion in range(4):
-        textoColor = colores[posicion] + " ($" + str(valorFicha(colores[posicion])) + ")"
-        tk.Radiobutton(marcoColores, text=textoColor, variable=colorElegido, value=colores[posicion]).grid(row=0, column=posicion)
-    return colorElegido
+    widgets["color"] = tk.StringVar(value="Blanco")
+    marco = tk.Frame(ventana)
+    marco.pack(pady=5)
+    for i in range(4):
+        texto = colores[i] + " ($" + str(valorFicha(colores[i])) + ")"
+        tk.Radiobutton(marco, text=texto, variable=widgets["color"], value=colores[i]).grid(row=0, column=i)
 
 
-def crearCampoApuesta(ventanaPadre):
+def crearCampoApuesta(ventana):
     """
     Funcionalidad:
-        Crea la etiqueta y el campo de entrada numerica para indicar la apuesta.
+        Crea el campo donde se escribe la apuesta.
 
     Entrada:
-        - ventanaPadre(Widget): Contenedor donde se ubicara el campo de entrada.
+        - ventana(Widget): Donde va el campo.
 
     Salida:
-        - campoApuesta(Entry): Entrada de texto configurada con valor inicial de 1.
+        - Ninguna (el campo queda en widgets["apuesta"]).
     """
-    marcoApuesta = tk.Frame(ventanaPadre)
-    marcoApuesta.pack(pady=5)
-    tk.Label(marcoApuesta, text="Fichas a apostar:").grid(row=0, column=0)
-    campoApuesta = tk.Entry(marcoApuesta, width=8)
-    campoApuesta.insert(0, "1")
-    campoApuesta.grid(row=0, column=1)
-    return campoApuesta
+    marco = tk.Frame(ventana)
+    marco.pack(pady=5)
+    tk.Label(marco, text="Fichas a apostar:").grid(row=0, column=0)
+    widgets["apuesta"] = tk.Entry(marco, width=8)
+    widgets["apuesta"].insert(0, "1")
+    widgets["apuesta"].grid(row=0, column=1)
 
-
-# sesion y menus
-
+# Sesion y menus
 def abrirSesion():
     """
     Funcionalidad:
-        Construye la ventana secundaria de inicio de sesion y la conecta con sesion.py.
+        Abre la ventana de inicio de sesion.
 
     Entrada:
         - Ninguna.
@@ -284,26 +311,28 @@ def abrirSesion():
     Salida:
         - Ninguna.
     """
-    ventanaSesion = nuevaVentana("Casino - Sesion", "430x440", cerrarTodo)
-    sesion.crearVentanaSesion(iniciarSesion, ventanaSesion)
+    ventana = nuevaVentana("Casino - Sesion", "430x440", cerrarTodo)
+    sesion.crearVentanaSesion(iniciarSesion, ventana)
 
 
 def iniciarSesion(registroJugador):
     """
     Funcionalidad:
-        Valida el registro del jugador recibido y abre la ventana del menu principal.
+        Revisa el registro del jugador y abre el menu principal.
 
     Entrada:
-        - registroJugador(list): Lista con los datos personales, recursos y puntaje del jugador.
+        - registroJugador(list): Datos del jugador.
 
     Salida:
-        - exito(bool): True si el jugador es valido y se inicio la sesion, False en caso contrario.
+        - exito(bool): True si todo salio bien, False si no.
     """
-    global jugador
-    if type(registroJugador) != list or not datos.validarEstructuraJugador(registroJugador):
+    if type(registroJugador) != list:
         messagebox.showerror("Error", "El registro del jugador no es valido")
         return False
-    jugador = registroJugador
+    if not datos.validarEstructuraJugador(registroJugador):
+        messagebox.showerror("Error", "El registro del jugador no es valido")
+        return False
+    jugador[:] = registroJugador
     menuPrincipal()
     return True
 
@@ -311,7 +340,7 @@ def iniciarSesion(registroJugador):
 def cerrarSesion():
     """
     Funcionalidad:
-        Pide confirmacion al usuario, guarda los datos, limpia la memoria y vuelve al login.
+        Pregunta si quiere cerrar sesion, guarda y vuelve al login.
 
     Entrada:
         - Ninguna.
@@ -319,20 +348,19 @@ def cerrarSesion():
     Salida:
         - Ninguna.
     """
-    global jugador
     if messagebox.askyesno("Cerrar sesion", "Seguro que quiere cerrar la sesion?"):
         guardar()
-        jugador = [("", "", ""), [0.0, 0, 0, 0, 0], 0]
+        jugador[:] = [("", "", ""), [0.0, 0, 0, 0, 0], 0]
         abrirSesion()
 
 
 def abrirE1(nombreModulo):
     """
     Funcionalidad:
-        Ejecuta una funcion del modulo E1 o muestra una advertencia si no esta disponible.
+        Abre una pantalla de E1 o avisa si todavia no esta conectada.
 
     Entrada:
-        - nombreModulo(str): Identificador de la funcion solicitada dentro de modulosE1.
+        - nombreModulo(str): Nombre dentro del diccionario modulosE1.
 
     Salida:
         - Ninguna.
@@ -346,7 +374,7 @@ def abrirE1(nombreModulo):
 def abrirRuleta():
     """
     Funcionalidad:
-        Abre el juego de Ruleta implementado en el modulo E1.
+        Abre la ruleta (E1).
 
     Entrada:
         - Ninguna.
@@ -360,7 +388,7 @@ def abrirRuleta():
 def abrirBlackjack():
     """
     Funcionalidad:
-        Abre el juego de Blackjack implementado en el modulo E1.
+        Abre el blackjack (E1).
 
     Entrada:
         - Ninguna.
@@ -374,7 +402,7 @@ def abrirBlackjack():
 def abrirRanking():
     """
     Funcionalidad:
-        Abre la pantalla de Ranking implementada en el modulo E1.
+        Abre el ranking (E1).
 
     Entrada:
         - Ninguna.
@@ -388,7 +416,7 @@ def abrirRanking():
 def abrirAnalisis():
     """
     Funcionalidad:
-        Abre la pantalla de Analisis implementada en el modulo E1.
+        Abre el analisis (E1).
 
     Entrada:
         - Ninguna.
@@ -402,7 +430,7 @@ def abrirAnalisis():
 def menuPrincipal():
     """
     Funcionalidad:
-        Construye y muestra la pantalla del menu principal con los datos del jugador y opciones.
+        Muestra el menu principal.
 
     Entrada:
         - Ninguna.
@@ -410,21 +438,21 @@ def menuPrincipal():
     Salida:
         - Ninguna.
     """
-    ventanaMenu = nuevaVentana("Casino - Menu", "420x380", cerrarTodo)
-    tk.Label(ventanaMenu, text="CASINO", font=("Arial", 16, "bold")).pack(pady=10)
-    tk.Label(ventanaMenu, text="Jugador: " + str(jugador[0][0]) + "   Dinero: $" + str(jugador[1][0])).pack()
-    tk.Label(ventanaMenu, text=textoSaldo()).pack(pady=5)
-    crearBoton(ventanaMenu, "Jugar", salaJuegos)
-    crearBoton(ventanaMenu, "Fichas", ventanaFichas)
-    crearBoton(ventanaMenu, "Ranking", abrirRanking)
-    crearBoton(ventanaMenu, "Analisis", abrirAnalisis)
-    crearBoton(ventanaMenu, "Cerrar sesion", cerrarSesion)
+    ventana = nuevaVentana("Casino - Menu", "420x380", cerrarTodo)
+    tk.Label(ventana, text="CASINO", font=("Arial", 16, "bold")).pack(pady=10)
+    tk.Label(ventana, text="Jugador: " + str(jugador[0][0]) + "   Dinero: $" + str(jugador[1][0])).pack()
+    tk.Label(ventana, text=textoSaldo()).pack(pady=5)
+    crearBoton(ventana, "Jugar", salaJuegos)
+    crearBoton(ventana, "Fichas", ventanaFichas)
+    crearBoton(ventana, "Ranking", abrirRanking)
+    crearBoton(ventana, "Analisis", abrirAnalisis)
+    crearBoton(ventana, "Cerrar sesion", cerrarSesion)
 
 
 def salaJuegos():
     """
     Funcionalidad:
-        Construye y muestra la pantalla selectora de juegos con botones para cada opcion.
+        Muestra la sala con los botones de cada juego.
 
     Entrada:
         - Ninguna.
@@ -432,22 +460,107 @@ def salaJuegos():
     Salida:
         - Ninguna.
     """
-    ventanaSala = nuevaVentana("Casino - Juegos", "420x350", menuPrincipal)
-    tk.Label(ventanaSala, text="SALA DE JUEGOS", font=("Arial", 16, "bold")).pack(pady=10)
-    tk.Label(ventanaSala, text=textoSaldo()).pack(pady=5)
-    crearBoton(ventanaSala, "Ruleta", abrirRuleta)
-    crearBoton(ventanaSala, "Tragamonedas", tragamonedas)
-    crearBoton(ventanaSala, "Blackjack", abrirBlackjack)
-    crearBoton(ventanaSala, "Dados", dados)
-    crearBoton(ventanaSala, "Volver al menu", menuPrincipal)
+    ventana = nuevaVentana("Casino - Juegos", "420x350", menuPrincipal)
+    tk.Label(ventana, text="SALA DE JUEGOS", font=("Arial", 16, "bold")).pack(pady=10)
+    tk.Label(ventana, text=textoSaldo()).pack(pady=5)
+    crearBoton(ventana, "Ruleta", abrirRuleta)
+    crearBoton(ventana, "Tragamonedas", tragamonedas)
+    crearBoton(ventana, "Blackjack", abrirBlackjack)
+    crearBoton(ventana, "Dados", dados)
+    crearBoton(ventana, "Volver al menu", menuPrincipal)
 
 
-# tragamonedas
+# Tragamonedas
+def volverDeTragamonedas():
+    """
+    Funcionalidad:
+        Vuelve a la sala, pero solo si los rodillos no estan girando.
+
+    Entrada:
+        - Ninguna.
+
+    Salida:
+        - Ninguna.
+    """
+    if estado["girando"]:
+        messagebox.showinfo("Girando", "Espere a que terminen de girar los rodillos")
+    else:
+        salaJuegos()
+
+
+def girarRodillos(paso, apuesta, color):
+    """
+    Funcionalidad:
+        Mueve los rodillos paso a paso y al final revisa si gano.
+
+    Entrada:
+        - paso(int): Numero de paso de la animacion.
+        - apuesta(int): Fichas apostadas.
+        - color(str): Color de las fichas.
+
+    Salida:
+        - Ninguna.
+    """
+    simbolos = []
+    for i in range(3):
+        estado["indices"][i] = (estado["indices"][i] + 1) % 5
+        simbolos.append(matrizRodillos[i][estado["indices"][i]])
+    widgets["rodillos"].config(text=simbolos[0] + "  |  " + simbolos[1] + "  |  " + simbolos[2])
+
+    if paso < 12:
+        estado["actual"].after(150, girarRodillos, paso + 1, apuesta, color)
+        return
+
+    # Se busca la combinacion en el diccionario (si no esta, no gano)
+    combinacion = (simbolos[0], simbolos[1], simbolos[2])
+    multiplicador = 0
+    if combinacion in combinacionesGanadoras:
+        multiplicador = combinacionesGanadoras[combinacion]
+
+    gano = False
+    if multiplicador > 0:
+        gano = True
+
+    pagoTotal = liquidar(apuesta, color, gano, multiplicador)
+    if gano:
+        widgets["resultado"].config(text="GANASTE! Recibe " + str(pagoTotal) + " ficha(s) " + color + " (ganancia neta: " + str(pagoTotal - apuesta) + ") y +2 puntos")
+    else:
+        widgets["resultado"].config(text="Perdio " + str(apuesta) + " ficha(s) " + color + " y -1 punto")
+    widgets["saldo"].config(text=textoSaldo())
+    estado["girando"] = False
+
+
+def iniciarGiro():
+    """
+    Funcionalidad:
+        Revisa la apuesta, descuenta las fichas y empieza a girar.
+
+    Entrada:
+        - Ninguna.
+
+    Salida:
+        - Ninguna.
+    """
+    if estado["girando"]:
+        return
+    color = widgets["color"].get()
+    apuesta = validarApuesta(widgets["apuesta"].get(), color)
+    if apuesta == 0:
+        return
+    posicion = colores.index(color) + 1
+    jugador[1][posicion] = jugador[1][posicion] - apuesta
+    widgets["saldo"].config(text=textoSaldo())
+    widgets["resultado"].config(text="Girando...")
+    for i in range(3):
+        estado["indices"][i] = random.randint(0, 4)
+    estado["girando"] = True
+    girarRodillos(1, apuesta, color)
+
 
 def tragamonedas():
     """
     Funcionalidad:
-        Construye y gestiona la interfaz del juego de tragamonedas de tres rodillos.
+        Muestra la pantalla de la tragamonedas.
 
     Entrada:
         - Ninguna.
@@ -455,108 +568,103 @@ def tragamonedas():
     Salida:
         - Ninguna.
     """
-    global estaGirando
-    estaGirando = False
-    indicesRodillos = [0, 1, 2]
+    estado["girando"] = False
+    ventana = nuevaVentana("Casino - Tragamonedas", "520x420", volverDeTragamonedas)
+    tk.Label(ventana, text="TRAGAMONEDAS", font=("Arial", 16, "bold")).pack(pady=8)
+    widgets["saldo"] = tk.Label(ventana, text=textoSaldo())
+    widgets["saldo"].pack()
+    widgets["rodillos"] = tk.Label(ventana, text="?  |  ?  |  ?", font=("Arial", 16))
+    widgets["rodillos"].pack(pady=10)
+    crearSelectorColor(ventana)
+    crearCampoApuesta(ventana)
+    widgets["resultado"] = tk.Label(ventana, text="Escoja el color, la apuesta y presione Girar")
+    widgets["resultado"].pack(pady=8)
+    crearBoton(ventana, "Girar / Jugar otra vez", iniciarGiro)
+    crearBoton(ventana, "Regresar a juegos", volverDeTragamonedas)
 
-    def volverASala():
-        """
-        Funcionalidad:
-            Regresa a la sala de juegos asegurando que los rodillos no esten girando.
 
-        Entrada:
-            - Ninguna.
+# Dados
+def lanzarDados():
+    """
+    Funcionalidad:
+        Revisa la apuesta, tira dos dados y dice si gano.
 
-        Salida:
-            - Ninguna.
-        """
-        if estaGirando:
-            messagebox.showinfo("Girando", "Espere a que terminen de girar los rodillos")
-        else:
-            salaJuegos()
+    Entrada:
+        - Ninguna.
 
-    ventanaTragamonedas = nuevaVentana("Casino - Tragamonedas", "520x420", volverASala)
-    tk.Label(ventanaTragamonedas, text="TRAGAMONEDAS", font=("Arial", 16, "bold")).pack(pady=8)
-    etiquetaSaldo = tk.Label(ventanaTragamonedas, text=textoSaldo())
-    etiquetaSaldo.pack()
-    etiquetaRodillos = tk.Label(ventanaTragamonedas, text="?  |  ?  |  ?", font=("Arial", 16))
-    etiquetaRodillos.pack(pady=10)
-    colorElegido = crearSelectorColor(ventanaTragamonedas)
-    campoApuesta = crearCampoApuesta(ventanaTragamonedas)
-    etiquetaResultado = tk.Label(ventanaTragamonedas, text="Escoja el color, la apuesta y presione Girar / Jugar otra vez")
-    etiquetaResultado.pack(pady=8)
+    Salida:
+        - Ninguna.
+    """
+    color = widgets["color"].get()
+    apuesta = validarApuesta(widgets["apuesta"].get(), color)
+    if apuesta == 0:
+        return
 
-    def girarRodillos(pasoActual, apuesta, color):
-        """
-        Funcionalidad:
-            Realiza la animacion ciclica de los rodillos, comprueba si gano y liquida la apuesta.
-
-        Entrada:
-            - pasoActual(int): Numero de paso actual dentro de la animacion.
-            - apuesta(int): Cantidad de fichas apostadas.
-            - color(str): Color de las fichas en juego.
-
-        Salida:
-            - Ninguna.
-        """
-        global estaGirando
-        simbolos = []
-        for fila in range(3):
-            indicesRodillos[fila] = (indicesRodillos[fila] + 1) % 5
-            simbolos.append(matrizRodillos[fila][indicesRodillos[fila]])
-        simbolosActuales = tuple(simbolos)
-        etiquetaRodillos.config(text="  |  ".join(simbolosActuales))
-
-        if pasoActual < 12:
-            ventanaTragamonedas.after(150, girarRodillos, pasoActual + 1, apuesta, color)
+    tipo = widgets["tipo"].get()
+    textoSuma = widgets["suma"].get().strip()
+    multiplicador = 0
+    if tipo == "sumaExacta":
+        if not esEntero(textoSuma):
+            messagebox.showwarning("Suma invalida", "Escriba un numero entero entre 2 y 12")
             return
-
-        multiplicador = combinacionesGanadoras.get(simbolosActuales, 0)
-        gano = multiplicador > 0
-        pagoTotal, gananciaNeta = liquidar(apuesta, color, gano, multiplicador)
-        if gano:
-            etiquetaResultado.config(text="GANASTE! Recibe " + str(pagoTotal) + " ficha(s) " + color + " y +2 puntos")
-        else:
-            etiquetaResultado.config(text="Perdio " + str(apuesta) + " ficha(s) " + color + " y -1 punto")
-        etiquetaSaldo.config(text=textoSaldo())
-        estaGirando = False
-
-    def iniciarGiro():
-        """
-        Funcionalidad:
-            Valida la apuesta, descuenta las fichas e inicia el giro animado de los rodillos.
-
-        Entrada:
-            - Ninguna.
-
-        Salida:
-            - Ninguna.
-        """
-        global estaGirando
-        if estaGirando:
+        if int(textoSuma) < 2 or int(textoSuma) > 12:
+            messagebox.showwarning("Suma invalida", "Escriba un numero entero entre 2 y 12")
             return
-        color = colorElegido.get()
-        apuesta = validarApuesta(campoApuesta.get(), color)
-        if apuesta == 0:
-            return
-        jugador[1][colores.index(color) + 1] -= apuesta
-        etiquetaSaldo.config(text=textoSaldo())
-        etiquetaResultado.config(text="Girando...")
-        for fila in range(3):
-            indicesRodillos[fila] = random.randint(0, 4)
-        estaGirando = True
-        girarRodillos(1, apuesta, color)
+        multiplicador = pagosSumaExacta[int(textoSuma)]
+    else:
+        multiplicador = pagosDados[tipo]
 
-    crearBoton(ventanaTragamonedas, "Girar / Jugar otra vez", iniciarGiro)
-    crearBoton(ventanaTragamonedas, "Regresar a juegos", volverASala)
+    posicion = colores.index(color) + 1
+    jugador[1][posicion] = jugador[1][posicion] - apuesta
+
+    # La tirada es una tupla con los valores de los 2 dados
+    tiradaDados = (random.randint(1, 6), random.randint(1, 6))
+    suma = tiradaDados[0] + tiradaDados[1]
+
+    gano = False
+    if tipo == "par":
+        if suma % 2 == 0:
+            gano = True
+    elif tipo == "impar":
+        if suma % 2 == 1:
+            gano = True
+    elif tipo == "dobles":
+        if tiradaDados[0] == tiradaDados[1]:
+            gano = True
+    elif tipo == "sumaExacta":
+        if suma == int(textoSuma):
+            gano = True
+
+    pagoTotal = liquidar(apuesta, color, gano, multiplicador)
+    widgets["dados"].config(text="Dados: " + str(tiradaDados) + "   Suma: " + str(suma))
+    if gano:
+        widgets["resultado"].config(text="Acerto! Recibe " + str(pagoTotal) + " ficha(s) " + color + " (ganancia neta: " + str(pagoTotal - apuesta) + ") y +2 puntos")
+    else:
+        widgets["resultado"].config(text="No acerto. Perdio " + str(apuesta) + " ficha(s) " + color + " y -1 punto")
+    widgets["saldo"].config(text=textoSaldo())
 
 
-# dados
+def actualizarCampoSuma():
+    """
+    Funcionalidad:
+        Muestra el campo de suma exacta solo si ese tipo de apuesta esta elegido.
+
+    Entrada:
+        - Ninguna.
+
+    Salida:
+        - Ninguna.
+    """
+    if widgets["tipo"].get() == "sumaExacta":
+        widgets["marcoSuma"].pack(pady=5, before=widgets["dados"])
+    else:
+        widgets["marcoSuma"].pack_forget()
+
 
 def dados():
     """
     Funcionalidad:
-        Construye y gestiona la interfaz del juego de dados con diversos tipos de apuesta.
+        Muestra la pantalla del juego de dados.
 
     Entrada:
         - Ninguna.
@@ -564,88 +672,131 @@ def dados():
     Salida:
         - Ninguna.
     """
-    ventanaDados = nuevaVentana("Casino - Dados", "520x520", salaJuegos)
-    tk.Label(ventanaDados, text="JUEGO DE DADOS", font=("Arial", 16, "bold")).pack(pady=8)
-    etiquetaSaldo = tk.Label(ventanaDados, text=textoSaldo())
-    etiquetaSaldo.pack()
-    colorElegido = crearSelectorColor(ventanaDados)
-    campoApuesta = crearCampoApuesta(ventanaDados)
+    ventana = nuevaVentana("Casino - Dados", "520x560", salaJuegos)
+    tk.Label(ventana, text="JUEGO DE DADOS", font=("Arial", 16, "bold")).pack(pady=8)
+    widgets["saldo"] = tk.Label(ventana, text=textoSaldo())
+    widgets["saldo"].pack()
+    crearSelectorColor(ventana)
+    crearCampoApuesta(ventana)
 
-    marcoTipoApuesta = tk.LabelFrame(ventanaDados, text="Tipo de apuesta")
-    marcoTipoApuesta.pack(pady=5)
-    tipoElegido = tk.StringVar(value="par")
+    marcoTipo = tk.LabelFrame(ventana, text="Tipo de apuesta")
+    marcoTipo.pack(pady=5)
+    widgets["tipo"] = tk.StringVar(value="par")
     for fila in range(2):
         for columna in range(2):
-            tipoApuesta = matrizOpcionesDados[fila][columna]
-            textoOpcion = tipoApuesta + " (x" + str(pagosDados[tipoApuesta]) + ")"
-            tk.Radiobutton(marcoTipoApuesta, text=textoOpcion, variable=tipoElegido, value=tipoApuesta).grid(row=fila, column=columna, sticky="w", padx=10)
+            tipo = matrizOpcionesDados[fila][columna]
+            if tipo == "sumaExacta":
+                texto = tipo + " (x" + str(min(pagosSumaExacta.values())) + " a x" + str(max(pagosSumaExacta.values())) + ")"
+            else:
+                texto = tipo + " (x" + str(pagosDados[tipo]) + ")"
+            tk.Radiobutton(marcoTipo, text=texto, variable=widgets["tipo"], value=tipo, command=actualizarCampoSuma).grid(row=fila, column=columna, sticky="w", padx=10)
 
-    marcoSumaExacta = tk.Frame(ventanaDados)
-    marcoSumaExacta.pack(pady=5)
-    tk.Label(marcoSumaExacta, text="Suma exacta (2 al 12):").grid(row=0, column=0)
-    campoSumaExacta = tk.Entry(marcoSumaExacta, width=6)
-    campoSumaExacta.insert(0, "7")
-    campoSumaExacta.grid(row=0, column=1)
+    # Este marco no se muestra hasta que se elige sumaExacta
+    widgets["marcoSuma"] = tk.Frame(ventana)
+    tk.Label(widgets["marcoSuma"], text="Suma exacta (2 al 12):").grid(row=0, column=0)
+    widgets["suma"] = tk.Entry(widgets["marcoSuma"], width=6)
+    widgets["suma"].insert(0, "7")
+    widgets["suma"].grid(row=0, column=1)
+    textoPagos = "Pagos: "
+    for suma in range(2, 13):
+        textoPagos = textoPagos + str(suma) + "=x" + str(pagosSumaExacta[suma]) + "  "
+    tk.Label(widgets["marcoSuma"], text=textoPagos, font=("Arial", 8), wraplength=480).grid(row=1, column=0, columnspan=2)
 
-    etiquetaDados = tk.Label(ventanaDados, text="Dados: (-, -)", font=("Arial", 13, "bold"))
-    etiquetaDados.pack(pady=5)
-    etiquetaResultado = tk.Label(ventanaDados, text="Escoja su apuesta y lance los dados")
-    etiquetaResultado.pack(pady=5)
+    widgets["dados"] = tk.Label(ventana, text="Dados: (-, -)", font=("Arial", 13, "bold"))
+    widgets["dados"].pack(pady=5)
+    widgets["resultado"] = tk.Label(ventana, text="Escoja su apuesta y lance los dados")
+    widgets["resultado"].pack(pady=5)
+    crearBoton(ventana, "Lanzar dados / Jugar otra vez", lanzarDados)
+    crearBoton(ventana, "Regresar a juegos", salaJuegos)
 
-    def lanzarDados():
-        """
-        Funcionalidad:
-            Valida la apuesta, genera la tirada de dos dados, evalua el acierto y liquida el resultado.
+# Fichas
+def operarFichas(esCompra):
+    """
+    Funcionalidad:
+        Hace la compra o el canje de fichas despues de revisar y confirmar.
 
-        Entrada:
-            - Ninguna.
+    Entrada:
+        - esCompra(bool): True si es compra, False si es canje.
 
-        Salida:
-            - Ninguna.
-        """
-        color = colorElegido.get()
-        apuesta = validarApuesta(campoApuesta.get(), color)
-        if apuesta == 0:
+    Salida:
+        - Ninguna.
+    """
+    cantidades = {}
+    totalOperacion = 0
+    montoTotal = 0
+    for i in range(4):
+        color = colores[i]
+        texto = widgets["cantidad"][color].get().strip()
+        if not esEntero(texto):
+            messagebox.showwarning("Cantidad invalida", "Solo numeros enteros en " + color)
             return
+        cantidad = int(texto)
+        if not esCompra and cantidad > fichasDe(color):
+            messagebox.showerror("Fichas insuficientes", "Solo tiene " + str(fichasDe(color)) + " ficha(s) " + color)
+            return
+        cantidades[llavesColores[i]] = cantidad
+        totalOperacion = totalOperacion + cantidad
+        montoTotal = montoTotal + cantidad * valorFicha(color)
 
-        tipoApuesta = tipoElegido.get()
-        textoSuma = campoSumaExacta.get().strip()
-        if tipoApuesta == "sumaExacta":
-            if not textoSuma.isdecimal() or int(textoSuma) < 2 or int(textoSuma) > 12:
-                messagebox.showwarning("Suma invalida", "Escriba un numero entero entre 2 y 12")
-                return
+    if totalOperacion == 0:
+        messagebox.showwarning("Vacio", "Escriba una cantidad mayor que cero en algun color")
+        return
+    if esCompra and montoTotal > jugador[1][0]:
+        messagebox.showerror("Dinero insuficiente", "Cuesta $" + str(montoTotal) + " y solo tiene $" + str(jugador[1][0]))
+        return
 
-        jugador[1][colores.index(color) + 1] -= apuesta
-        tiradaDados = (random.randint(1, 6), random.randint(1, 6))
-        sumaDados = tiradaDados[0] + tiradaDados[1]
+    if esCompra:
+        verbo = "Comprar "
+    else:
+        verbo = "Canjear "
+    if not messagebox.askyesno("Confirmar", verbo + str(totalOperacion) + " ficha(s) por $" + str(montoTotal) + "?"):
+        return
 
-        if tipoApuesta == "sumaExacta":
-            gano = sumaDados == int(textoSuma)
-        elif tipoApuesta == "par":
-            gano = sumaDados % 2 == 0
-        elif tipoApuesta == "impar":
-            gano = sumaDados % 2 == 1
+    respaldo = list(jugador[1])
+    try:
+        if esCompra:
+            datos.comprarFichas(jugador, cantidades)
         else:
-            gano = tiradaDados[0] == tiradaDados[1]
-
-        pagoTotal, gananciaNeta = liquidar(apuesta, color, gano, pagosDados[tipoApuesta])
-        etiquetaDados.config(text="Dados: " + str(tiradaDados) + "   Suma: " + str(sumaDados))
-        if gano:
-            etiquetaResultado.config(text="Acerto! Recibe " + str(pagoTotal) + " ficha(s) " + color + " y +2 puntos")
-        else:
-            etiquetaResultado.config(text="No acerto. Perdio " + str(apuesta) + " ficha(s) " + color + " y -1 punto")
-        etiquetaSaldo.config(text=textoSaldo())
-
-    crearBoton(ventanaDados, "Lanzar dados", lanzarDados)
-    crearBoton(ventanaDados, "Regresar a juegos", salaJuegos)
+            datos.canjearFichas(jugador, cantidades)
+        messagebox.showinfo("Listo", "Operacion realizada")
+    except Exception as error:
+        jugador[1] = respaldo
+        messagebox.showerror("Error", "No se pudo completar: " + str(error))
+    refrescarFichas()
 
 
-# fichas
+def comprarFichas():
+    """
+    Funcionalidad:
+        Hace una compra de fichas.
+
+    Entrada:
+        - Ninguna.
+
+    Salida:
+        - Ninguna.
+    """
+    operarFichas(True)
+
+
+def canjearFichas():
+    """
+    Funcionalidad:
+        Hace un canje de fichas.
+
+    Entrada:
+        - Ninguna.
+
+    Salida:
+        - Ninguna.
+    """
+    operarFichas(False)
+
 
 def ventanaFichas():
     """
     Funcionalidad:
-        Construye y gestiona la pantalla para la compra y el canje de fichas del jugador.
+        Muestra la pantalla de compra y canje de fichas.
 
     Entrada:
         - Ninguna.
@@ -653,135 +804,40 @@ def ventanaFichas():
     Salida:
         - Ninguna.
     """
-    ventanaCompraCanje = nuevaVentana("Casino - Fichas", "480x420", menuPrincipal)
-    tk.Label(ventanaCompraCanje, text="COMPRA Y CANJE DE FICHAS", font=("Arial", 14, "bold")).pack(pady=8)
-    etiquetaDinero = tk.Label(ventanaCompraCanje, text="")
-    etiquetaDinero.pack()
+    ventana = nuevaVentana("Casino - Fichas", "480x420", menuPrincipal)
+    tk.Label(ventana, text="COMPRA Y CANJE DE FICHAS", font=("Arial", 14, "bold")).pack(pady=8)
+    widgets["dinero"] = tk.Label(ventana, text="")
+    widgets["dinero"].pack()
 
-    marcoTabla = tk.Frame(ventanaCompraCanje)
+    marcoTabla = tk.Frame(ventana)
     marcoTabla.pack(pady=8)
-    titulosColumnas = ["Color", "Valor ($)", "Tienes", "Cantidad"]
-    for columna in range(4):
-        tk.Label(marcoTabla, text=titulosColumnas[columna], font=("Arial", 10, "bold"), width=10).grid(row=0, column=columna)
+    titulos = ["Color", "Valor ($)", "Tienes", "Cantidad"]
+    for i in range(4):
+        tk.Label(marcoTabla, text=titulos[i], font=("Arial", 10, "bold"), width=10).grid(row=0, column=i)
 
-    etiquetasFichasTiene = {}
-    camposCantidad = {}
-    for posicion in range(4):
-        color = colores[posicion]
-        tk.Label(marcoTabla, text=color).grid(row=posicion + 1, column=0, pady=3)
-        tk.Label(marcoTabla, text="$" + str(valorFicha(color))).grid(row=posicion + 1, column=1)
-        etiquetasFichasTiene[color] = tk.Label(marcoTabla, text="")
-        etiquetasFichasTiene[color].grid(row=posicion + 1, column=2)
-        camposCantidad[color] = tk.Entry(marcoTabla, width=8, justify="center")
-        camposCantidad[color].grid(row=posicion + 1, column=3)
+    widgets["tiene"] = {}
+    widgets["cantidad"] = {}
+    for i in range(4):
+        color = colores[i]
+        tk.Label(marcoTabla, text=color).grid(row=i + 1, column=0, pady=3)
+        tk.Label(marcoTabla, text="$" + str(valorFicha(color))).grid(row=i + 1, column=1)
+        widgets["tiene"][color] = tk.Label(marcoTabla, text="")
+        widgets["tiene"][color].grid(row=i + 1, column=2)
+        widgets["cantidad"][color] = tk.Entry(marcoTabla, width=8, justify="center")
+        widgets["cantidad"][color].grid(row=i + 1, column=3)
 
-    def refrescarPantalla():
-        """
-        Funcionalidad:
-            Actualiza en pantalla el dinero disponible y la cantidad de fichas por color.
-
-        Entrada:
-            - Ninguna.
-
-        Salida:
-            - Ninguna.
-        """
-        etiquetaDinero.config(text="Dinero: $" + str(jugador[1][0]) + "   Total fichas: " + str(totalFichas()))
-        for color in colores:
-            etiquetasFichasTiene[color].config(text=str(fichasDe(color)))
-            camposCantidad[color].delete(0, tk.END)
-            camposCantidad[color].insert(0, "0")
-
-    def operarFichas(esCompra):
-        """
-        Funcionalidad:
-            Procesa y valida la transaccion de compra o canje de fichas solicitando confirmacion.
-
-        Entrada:
-            - esCompra(bool): True si corresponde a una compra de fichas, False si es un canje.
-
-        Salida:
-            - Ninguna.
-        """
-        cantidadesPorColor = {}
-        totalFichasOperacion = 0
-        montoTotal = 0
-        for posicion in range(4):
-            color = colores[posicion]
-            textoCantidad = camposCantidad[color].get().strip()
-            if not textoCantidad.isdecimal():
-                messagebox.showwarning("Cantidad invalida", "Solo numeros enteros en " + color)
-                return
-            cantidad = int(textoCantidad)
-            if not esCompra and cantidad > fichasDe(color):
-                messagebox.showerror("Fichas insuficientes", "Solo tiene " + str(fichasDe(color)) + " ficha(s) " + color)
-                return
-            cantidadesPorColor[llavesColores[posicion]] = cantidad
-            totalFichasOperacion += cantidad
-            montoTotal += cantidad * valorFicha(color)
-
-        if totalFichasOperacion == 0:
-            messagebox.showwarning("Vacio", "Escriba una cantidad mayor que cero en algun color")
-            return
-        if esCompra and montoTotal > jugador[1][0]:
-            messagebox.showerror("Dinero insuficiente", "Cuesta $" + str(montoTotal) + " y solo tiene $" + str(jugador[1][0]))
-            return
-
-        verbo = "Canjear "
-        if esCompra:
-            verbo = "Comprar "
-        if not messagebox.askyesno("Confirmar", verbo + str(totalFichasOperacion) + " ficha(s) por $" + str(montoTotal) + "?"):
-            return
-
-        respaldoRecursos = list(jugador[1])
-        try:
-            if esCompra:
-                datos.comprarFichas(jugador, cantidadesPorColor)
-            else:
-                datos.canjearFichas(jugador, cantidadesPorColor)
-            messagebox.showinfo("Listo", "Operacion realizada")
-        except Exception as error:
-            jugador[1] = respaldoRecursos
-            messagebox.showerror("Error", "No se pudo completar: " + str(error))
-        refrescarPantalla()
-
-    def comprarFichas():
-        """
-        Funcionalidad:
-            Ejecuta la transaccion de compra de fichas llamando a operarFichas con True.
-
-        Entrada:
-            - Ninguna.
-
-        Salida:
-            - Ninguna.
-        """
-        operarFichas(True)
-
-    def canjearFichas():
-        """
-        Funcionalidad:
-            Ejecuta la transaccion de canje de fichas llamando a operarFichas con False.
-
-        Entrada:
-            - Ninguna.
-
-        Salida:
-            - Ninguna.
-        """
-        operarFichas(False)
-
-    marcoBotones = tk.Frame(ventanaCompraCanje)
+    marcoBotones = tk.Frame(ventana)
     marcoBotones.pack(pady=8)
     tk.Button(marcoBotones, text="Comprar fichas", width=16, command=comprarFichas).grid(row=0, column=0, padx=8)
     tk.Button(marcoBotones, text="Canjear fichas", width=16, command=canjearFichas).grid(row=0, column=1, padx=8)
-    crearBoton(ventanaCompraCanje, "Volver al menu", menuPrincipal)
-    refrescarPantalla()
-# inicio
+    crearBoton(ventana, "Volver al menu", menuPrincipal)
+    refrescarFichas()
+
+# Inicio del programa
 def iniciar():
     """
     Funcionalidad:
-        Crea la ventana raiz escondida, abre la sesion y arranca el bucle de eventos.
+        Crea la ventana raiz escondida, abre el login y arranca el programa.
 
     Entrada:
         - Ninguna.
@@ -789,10 +845,10 @@ def iniciar():
     Salida:
         - Ninguna.
     """
-    global ventanaRaiz
-    ventanaRaiz = tk.Tk()
-    ventanaRaiz.withdraw()
+    estado["raiz"] = tk.Tk()
+    estado["raiz"].withdraw()
     abrirSesion()
-    ventanaRaiz.mainloop()
+    estado["raiz"].mainloop()
+
 
 iniciar()
