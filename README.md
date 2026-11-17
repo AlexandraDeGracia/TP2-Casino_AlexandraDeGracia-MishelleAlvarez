@@ -20,7 +20,7 @@ https://github.com/AlexandraDeGracia/TP2-Casino_AlexandraDeGracia-MishelleAlvare
 - Jugar tragamonedas o dados desde la sala de juegos.
 - Cerrar sesión y volver al inicio.
 
-**No se entregan en esta versión si no mas adelante :** Ruleta y Blackjack (botones de la sala de juegos) y Ranking y Análisis (botones del menú principal). Esos cuatro botones aparecen en el programa, pero solo muestran el aviso de que no están disponibles.
+**Faltaria :** Ruleta y Blackjack (botones de la sala de juegos) y Ranking y Análisis (botones del menú principal). Esos cuatro botones aparecen en el programa, pero solo muestran el aviso de que no están disponibles.
 
 ### Tragamonedas
 
@@ -90,7 +90,7 @@ python casino.py
 
 ## 11. Estado del proyecto
 
-Están conectados el registro e inicio de sesión, el menú, la compra y el canje de fichas, la tragamonedas, los dados y el cierre de sesión. Ruleta, Blackjack, Ranking y Análisis no se entregan en esta versión si no mas adelante .
+Están conectados el registro e inicio de sesión, el menú, la compra y el canje de fichas, la tragamonedas, los dados y el cierre de sesión. Ruleta, Blackjack, Ranking y Análisis esta faltando .
 
 ## 12. Nota sobre el uso de Inteligencia Artificial
 
