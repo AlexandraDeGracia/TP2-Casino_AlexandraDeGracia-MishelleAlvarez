@@ -140,18 +140,19 @@ def cargarJugadores():
     if os.path.getsize(ruta) == 0:
         return []
 
-    archivo = open(ruta, "rb")
     try:
+        archivo = open(ruta, "rb")
         jugadores = pickle.load(archivo)
-    finally:
         archivo.close()
+    except (OSError, pickle.UnpicklingError, EOFError):
+        return []
 
     if not isinstance(jugadores, list):
-        raise ValueError("El archivo de jugadores no contiene una lista.")
+        return []
 
     for jugador in jugadores:
         if not validarEstructuraJugador(jugador):
-            raise ValueError("El archivo contiene un registro de jugador invalido.")
+            return []
 
     return jugadores
 
@@ -168,17 +169,19 @@ def guardarJugadores(jugadores):
         - Ninguna: Actualiza el archivo binario jugadores en disco sin retornar un valor.
     """
     if not isinstance(jugadores, list):
-        raise TypeError("Los jugadores deben almacenarse en una lista.")
+        return "Los jugadores deben almacenarse en una lista."
 
     for jugador in jugadores:
         if not validarEstructuraJugador(jugador):
-            raise ValueError("No se puede guardar: hay un jugador con datos invalidos.")
+            return "No se puede guardar: hay un jugador con datos invalidos."
 
-    archivo = open(obtenerRutaArchivo(), "wb")
     try:
+        archivo = open(obtenerRutaArchivo(), "wb")
         pickle.dump(jugadores, archivo, pickle.HIGHEST_PROTOCOL)
-    finally:
         archivo.close()
+        return True
+    except OSError:
+        return "Error al escribir en el archivo de jugadores."
 
 
 def buscarJugador(username, jugadores=None):
@@ -224,12 +227,12 @@ def registrarJugador(username, nombre, apellido):
     apellido = apellido.strip()
 
     if not username or not nombre or not apellido:
-        raise ValueError("Todos los campos son obligatorios.")
+        return "Todos los campos son obligatorios."
 
     jugadores = cargarJugadores()
 
     if buscarJugador(username, jugadores) is not None:
-        raise ValueError("Ese username ya esta registrado.")
+        return "Ese username ya esta registrado."
 
     nuevoJugador = [
         (username, nombre, apellido),
@@ -293,11 +296,11 @@ def comprarFichas(jugador, cantidades):
     for color in VALOR_FICHAS:
         cantidad = cantidades.get(color, 0)
         if not isinstance(cantidad, int) or cantidad < 0:
-            raise ValueError("Las cantidades deben ser enteros no negativos.")
+            return "Las cantidades deben ser enteros no negativos."
         costoTotal += cantidad * VALOR_FICHAS[color]
 
     if consultarDinero(jugador) < costoTotal:
-        raise ValueError("El jugador no tiene dinero suficiente.")
+        return "El jugador no tiene dinero suficiente."
 
     jugador[1][0] = float(jugador[1][0]) - costoTotal
     posiciones = {"rojas": 1, "azules": 2, "verdes": 3, "blancas": 4}
@@ -328,9 +331,9 @@ def canjearFichas(jugador, cantidades):
     for color, posicion in posiciones.items():
         cantidad = cantidades.get(color, 0)
         if not isinstance(cantidad, int) or cantidad < 0:
-            raise ValueError("Las cantidades deben ser enteros no negativos.")
+            return "Las cantidades deben ser enteros no negativos."
         if cantidad > jugador[1][posicion]:
-            raise ValueError("No hay suficientes fichas " + color + ".")
+            return "No hay suficientes fichas " + color + "."
 
         dineroRecibido += cantidad * VALOR_FICHAS[color]
 
@@ -353,10 +356,10 @@ def actualizarPuntaje(jugador, cantidad):
         - cantidad(int): Cantidad de puntos a sumar o restar.
 
     Salida:
-        - puntaje(int): Puntaje actualizado del jugador.
+        - puntaje(int o str): Puntaje actualizado del jugador, o texto de error si fallo.
     """
     if not isinstance(cantidad, int):
-        raise TypeError("La variacion del puntaje debe ser un entero.")
+        return "La variacion del puntaje debe ser un entero."
 
     jugador[2] += cantidad
     guardarCambiosJugador(jugador)
@@ -373,7 +376,7 @@ def guardarCambiosJugador(jugador):
         - jugador(list): Registro actualizado del jugador activo.
 
     Salida:
-        - Ninguna: Actualiza el registro del jugador en el archivo jugadores sin retornar un valor.
+        - resultado(bool o str): True si guardo los cambios, o texto de error si fallo.
     """
     jugadores = cargarJugadores()
     username = jugador[0][0]
@@ -382,6 +385,6 @@ def guardarCambiosJugador(jugador):
         if jugadorGuardado[0][0].lower() == username.lower():
             jugadores[indice] = jugador
             guardarJugadores(jugadores)
-            return
+            return True
 
-    raise ValueError("No se encontro el jugador para guardar los cambios.")
+    return "No se encontro el jugador para guardar los cambios."

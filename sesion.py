@@ -35,17 +35,17 @@ def iniciarSesion(username):
         Busca el jugador por su username en el archivo de jugadores y devuelve su registro si existe.
 
     Entrada:
-        - username(str): Nombre de usuario ingresado para iniciar sesión.
+        - username(str): Nombre de usuario ingresado para iniciar sesion.
 
     Salida:
-        - jugador(list): Registro del jugador encontrado en el archivo jugadores.
+        - resultado(list o str): Registro del jugador encontrado o mensaje de error si fallo.
     """
     if not username.strip():
-        raise ValueError("Escriba su username.")
+        return "Escriba su username."
 
     jugador = datos.buscarJugador(username)
     if not jugador:
-        raise ValueError("No existe un jugador con ese username.")
+        return "No existe un jugador con ese username."
 
     return jugador
 
@@ -56,15 +56,15 @@ def registrarDesdeFormulario(username, nombre, apellido):
         Valida los datos ingresados en el formulario y registra al nuevo jugador en el archivo de datos.
 
     Entrada:
-        - username(str): Nombre de usuario único del jugador.
+        - username(str): Nombre de usuario unico del jugador.
         - nombre(str): Nombre del jugador.
         - apellido(str): Apellido del jugador.
 
     Salida:
-        - jugador(list): Registro del jugador recién creado en el archivo jugadores.
+        - resultado(list o str): Registro del jugador recién creado o mensaje de error si fallo.
     """
     if not validarRegistro(username, nombre, apellido):
-        raise ValueError("Complete username, nombre y apellido.")
+        return "Complete username, nombre y apellido."
 
     return datos.registrarJugador(username, nombre, apellido)
 
@@ -128,7 +128,7 @@ def crearVentanaSesion(alIniciarSesion=False, ventanaPadre=False):
         """
         Funcionalidad:
             Procesa el formulario de registro de un nuevo jugador, muestra un aviso
-            al completarse y coloca el username registrado en el campo de inicio de sesión.
+            al completarse y coloca el username registrado en el campo de inicio de sesion.
 
         Entrada:
             - Ninguna.
@@ -136,23 +136,24 @@ def crearVentanaSesion(alIniciarSesion=False, ventanaPadre=False):
         Salida:
             - Ninguna: Registra al jugador y actualiza los campos de la ventana sin retornar un valor.
         """
-        try:
-            jugador = registrarDesdeFormulario(
-                entradaUsernameRegistro.get(),
-                entradaNombre.get(),
-                entradaApellido.get()
-            )
-            messagebox.showinfo(
-                "Registro correcto",
-                "Jugador registrado. Ya puede iniciar sesion."
-            )
-            entradaUsernameSesion.delete(0, tk.END)
-            entradaUsernameSesion.insert(0, jugador[0][0])
-            entradaUsernameRegistro.delete(0, tk.END)
-            entradaNombre.delete(0, tk.END)
-            entradaApellido.delete(0, tk.END)
-        except (ValueError, OSError, pickle.UnpicklingError, EOFError) as error:
-            messagebox.showerror("No se pudo registrar", str(error))
+        resultado = registrarDesdeFormulario(
+            entradaUsernameRegistro.get(),
+            entradaNombre.get(),
+            entradaApellido.get()
+        )
+        if isinstance(resultado, str):
+            messagebox.showerror("No se pudo registrar", resultado)
+            return
+
+        messagebox.showinfo(
+            "Registro correcto",
+            "Jugador registrado. Ya puede iniciar sesion."
+        )
+        entradaUsernameSesion.delete(0, tk.END)
+        entradaUsernameSesion.insert(0, resultado[0][0])
+        entradaUsernameRegistro.delete(0, tk.END)
+        entradaNombre.delete(0, tk.END)
+        entradaApellido.delete(0, tk.END)
 
     tk.Button(
         marcoRegistro, text="Registrarse", command=registrar, width=18
@@ -172,40 +173,35 @@ def crearVentanaSesion(alIniciarSesion=False, ventanaPadre=False):
     def entrar():
         """
         Funcionalidad:
-            Valida el username ingresado para iniciar sesión y transfiere el registro
-            del jugador a la función conectada en alIniciarSesion.
+            Valida el username ingresado para iniciar sesion y transfiere el registro
+            del jugador a la funcion conectada en alIniciarSesion.
 
         Entrada:
             - Ninguna.
 
         Salida:
-            - Ninguna: Inicia la sesión del jugador y abre el menú principal sin retornar un valor.
+            - Ninguna: Inicia la sesion del jugador y abre el menu principal sin retornar un valor.
         """
-        try:
-            jugador = iniciarSesion(entradaUsernameSesion.get())
+        resultado = iniciarSesion(entradaUsernameSesion.get())
+        if isinstance(resultado, str):
+            messagebox.showerror("No se pudo iniciar sesion", resultado)
+            return
 
-            if alIniciarSesion:
-                if not ventanaPadre:
-                    ventana.destroy()
-                alIniciarSesion(jugador)
-            else:
-                messagebox.showinfo(
-                    "Sesion iniciada",
-                    "Bienvenido, " + jugador[0][1] + " " + jugador[0][2] + "."
-                )
-        except (ValueError, OSError, pickle.UnpicklingError, EOFError) as error:
-            messagebox.showerror("No se pudo iniciar sesion", str(error))
+        jugador = resultado
+        if alIniciarSesion:
+            if not ventanaPadre:
+                ventana.destroy()
+            alIniciarSesion(jugador)
+        else:
+            messagebox.showinfo(
+                "Sesion iniciada",
+                "Bienvenido, " + jugador[0][1] + " " + jugador[0][2] + "."
+            )
 
     tk.Button(
         marcoSesion, text="Iniciar sesion", command=entrar, width=18
     ).grid(row=1, column=0, columnspan=2, pady=(10, 2))
 
-    tk.Label(
-        ventana,
-        text="Los datos se guardan localmente en el archivo jugadores.",
-        font=("Arial", 8),
-        fg="gray"
-    ).pack(pady=8)
 
     if not ventanaPadre:
         ventana.mainloop()

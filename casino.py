@@ -33,6 +33,19 @@ combinacionesGanadoras = {
 
 # Diccionario de pagos de los dados
 pagosDados = {"par": 2, "impar": 2, "dobles": 5, "sumaExacta": 12}
+pagosSumaExacta = {
+    2: 30,
+    3: 15,
+    4: 10,
+    5: 8,
+    6: 6,
+    7: 5,
+    8: 6,
+    9: 8,
+    10: 10,
+    11: 15,
+    12: 30
+}
 
 # Matriz con las opciones de apuesta de los dados
 matrizOpcionesDados = [
@@ -133,10 +146,9 @@ def guardar():
     Salida:
         - Ninguna.
     """
-    try:
-        datos.guardarCambiosJugador(jugador)
-    except Exception as error:
-        messagebox.showerror("Error al guardar", str(error))
+    resultado = datos.guardarCambiosJugador(jugador)
+    if isinstance(resultado, str):
+        messagebox.showerror("Error al guardar", resultado)
 
 def esEntero(texto):
     """
@@ -710,6 +722,24 @@ def dados():
     crearBoton(ventana, "Regresar a juegos", salaJuegos)
 
 # Fichas
+def refrescarFichas():
+    """
+    Funcionalidad:
+        Actualiza el dinero disponible, las fichas por color y reinicia los campos de entrada.
+
+    Entrada:
+        - Ninguna.
+
+    Salida:
+        - Ninguna.
+    """
+    widgets["dinero"].config(text="Dinero: $" + str(jugador[1][0]) + "   Total fichas: " + str(totalFichas()))
+    for color in colores:
+        widgets["tiene"][color].config(text=str(fichasDe(color)))
+        widgets["cantidad"][color].delete(0, tk.END)
+        widgets["cantidad"][color].insert(0, "0")
+
+
 def operarFichas(esCompra):
     """
     Funcionalidad:
@@ -753,15 +783,16 @@ def operarFichas(esCompra):
         return
 
     respaldo = list(jugador[1])
-    try:
-        if esCompra:
-            datos.comprarFichas(jugador, cantidades)
-        else:
-            datos.canjearFichas(jugador, cantidades)
-        messagebox.showinfo("Listo", "Operacion realizada")
-    except Exception as error:
+    if esCompra:
+        resultado = datos.comprarFichas(jugador, cantidades)
+    else:
+        resultado = datos.canjearFichas(jugador, cantidades)
+
+    if isinstance(resultado, str):
         jugador[1] = respaldo
-        messagebox.showerror("Error", "No se pudo completar: " + str(error))
+        messagebox.showerror("Error", "No se pudo completar: " + resultado)
+    else:
+        messagebox.showinfo("Listo", "Operacion realizada")
     refrescarFichas()
 
 
