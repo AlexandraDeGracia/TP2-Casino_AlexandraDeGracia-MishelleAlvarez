@@ -9,7 +9,7 @@ Casino virtual hecho en Python con Tkinter. Permite crear una cuenta, iniciar se
 
 ## 2. Repositorio
 
-[TP2-Casino](https://github.com/AlexandraDeGracia/TP2-Casino_AlexandraDeGracia-MishelleAlvarez.git)
+https://github.com/AlexandraDeGracia/TP2-Casino_AlexandraDeGracia-MishelleAlvarez.git
 
 ## 3. ¿Qué puede hacer el programa?
 
