@@ -11,43 +11,33 @@ import random
 import datos
 import sesion
 
+PASOS_ANIMACION = 12
+INTERVALO_ANIMACION = 150
+CANTIDAD_RODILLOS = 3
+CANTIDAD_SIMBOLOS = 5
+CARAS_DADO = 6
+SUMA_MINIMA_DADOS = 2
+SUMA_MAXIMA_DADOS = 12
+
 colores = ["Rojo", "Azul", "Verde", "Blanco"]
 llavesColores = ["rojas", "azules", "verdes", "blancas"]
 
-# Matriz de rodillos: cada fila es un rodillo
 matrizRodillos = [
-    ["Cereza", "Limon", "Campana", "Estrella", "Siete"],
-    ["Cereza", "Limon", "Campana", "Estrella", "Siete"],
-    ["Cereza", "Limon", "Campana", "Estrella", "Siete"]
+    ["Cereza", "Limón", "Campana", "Estrella", "Siete"],
+    ["Cereza", "Limón", "Campana", "Estrella", "Siete"],
+    ["Cereza", "Limón", "Campana", "Estrella", "Siete"]
 ]
 
-# Diccionario de combinaciones ganadoras: la llave es una tupla con los 3 simbolos
-# y el valor es el multiplicador (las fichas se duplican)
 combinacionesGanadoras = {
     ("Cereza", "Cereza", "Cereza"): 2,
-    ("Limon", "Limon", "Limon"): 2,
+    ("Limón", "Limón", "Limón"): 2,
     ("Campana", "Campana", "Campana"): 2,
     ("Estrella", "Estrella", "Estrella"): 2,
     ("Siete", "Siete", "Siete"): 2
 }
 
-# Diccionario de pagos de los dados
 pagosDados = {"par": 2, "impar": 2, "dobles": 5, "sumaExacta": 12}
-pagosSumaExacta = {
-    2: 30,
-    3: 15,
-    4: 10,
-    5: 8,
-    6: 6,
-    7: 5,
-    8: 6,
-    9: 8,
-    10: 10,
-    11: 15,
-    12: 30
-}
 
-# Matriz con las opciones de apuesta de los dados
 matrizOpcionesDados = [
     ["par", "impar"],
     ["dobles", "sumaExacta"]
@@ -55,111 +45,68 @@ matrizOpcionesDados = [
 
 # [(username, nombre, apellido), [dinero, rojas, azules, verdes, blancas], puntos]
 jugador = [("", "", ""), [0.0, 0, 0, 0, 0], 0]
-
-# Estado del programa:
-# raiz = ventana principal, actual = ventana abierta, girando = si la tragamonedas gira
-# indices = posicion actual de cada rodillo
 estado = {"raiz": "", "actual": "", "girando": False, "indices": [0, 0, 0]}
-
-# Aqui se guardan los objetos de la ventana que se esta usando (etiquetas, campos, etc.)
 widgets = {}
-
-# Aqui se conecta E1
-modulosE1 = {"ruleta": "", "blackjack": "", "ranking": "", "analisis": ""}
-
-
 
 # Datos del jugador
 def fichasDe(color):
     """
     Funcionalidad:
         Devuelve cuantas fichas tiene el jugador de un color.
-
     Entrada:
-        - color(str): Nombre del color.
-
+    - color(str): Nombre del color.
     Salida:
-        - cantidad(int): Fichas de ese color.
+    - cantidad(int): Fichas de ese color.
     """
-    posicion = colores.index(color)
-    return int(jugador[1][posicion + 1])
-
+    return jugador[1][colores.index(color) + 1]
 
 def valorFicha(color):
     """
     Funcionalidad:
         Devuelve el valor en dolares de una ficha.
-
     Entrada:
-        - color(str): Nombre del color.
-
+    - color(str): Nombre del color.
     Salida:
-        - valor(int): Valor de la ficha.
+    - valor(int): Valor de la ficha.
     """
-    posicion = colores.index(color)
-    return int(datos.VALOR_FICHAS[llavesColores[posicion]])
-
+    return datos.VALOR_FICHAS[llavesColores[colores.index(color)]]
 
 def totalFichas():
     """
     Funcionalidad:
         Suma todas las fichas del jugador.
-
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - total(int): Total de fichas.
+    - total(int): Total de fichas.
     """
     total = 0
     for color in colores:
         total = total + fichasDe(color)
     return total
 
-
 def textoSaldo():
     """
     Funcionalidad:
         Arma el texto con las fichas de cada color, el total y los puntos.
-
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - texto(str): Texto para mostrar en pantalla.
+    - texto(str): Texto para mostrar en pantalla.
     """
     texto = ""
-    for i in range(4):
+    for i in range(len(colores)):
         texto = texto + colores[i] + ": " + str(jugador[1][i + 1]) + "   "
-    texto = texto + "\nTotal: " + str(totalFichas()) + "   Puntos: " + str(jugador[2])
-    return texto
-
-
-def guardar():
-    """
-    Funcionalidad:
-        Guarda los datos del jugador en el archivo.
-
-    Entrada:
-        - Ninguna.
-
-    Salida:
-        - Ninguna.
-    """
-    resultado = datos.guardarCambiosJugador(jugador)
-    if isinstance(resultado, str):
-        messagebox.showerror("Error al guardar", resultado)
+    return texto + "\nTotal: " + str(totalFichas()) + "   Puntos: " + str(jugador[2])
 
 def esEntero(texto):
     """
     Funcionalidad:
         Revisa que el texto tenga solo digitos del 0 al 9.
-
     Entrada:
-        - texto(str): Texto a revisar.
-
+    - texto(str): Texto a revisar.
     Salida:
-        - valido(bool): True si es un entero sin signo, False si no.
+    - valido(bool): True si es un entero sin signo, False si no.
     """
     if texto == "":
         return False
@@ -172,81 +119,100 @@ def validarApuesta(textoApuesta, color):
     """
     Funcionalidad:
         Revisa que la apuesta sea un entero mayor que cero y que alcancen las fichas.
-
     Entrada:
-        - textoApuesta(str): Lo que escribio el usuario.
-        - color(str): Color de ficha elegido.
-
+    - textoApuesta(str): Lo que escribio el usuario.
+    - color(str): Color elegido.
     Salida:
-        - apuesta(int): La apuesta o 0 si es invalida.
+    - apuesta(int): La apuesta o 0 si es invalida.
     """
     textoApuesta = textoApuesta.strip()
-    if not esEntero(textoApuesta):
+    if not esEntero(textoApuesta) or int(textoApuesta) <= 0:
         messagebox.showwarning("Apuesta invalida", "Escribe un numero entero mayor que cero")
         return 0
     apuesta = int(textoApuesta)
-    if apuesta <= 0:
-        messagebox.showwarning("Apuesta invalida", "Escribe un numero entero mayor que cero")
-        return 0
     if apuesta > fichasDe(color):
         messagebox.showwarning("Fichas insuficientes", "Solo tienes " + str(fichasDe(color)) + " ficha(s) " + color)
         return 0
     return apuesta
 
+def descontarApuesta(apuesta, color):
+    """
+    Funcionalidad:
+        Descuenta las fichas apostadas del color elegido.
+    Entrada:
+    - apuesta(int): Cantidad de fichas.
+    - color(str): Color apostado.
+    Salida:
+    - Ninguna.
+    """
+    posicion = colores.index(color) + 1
+    jugador[1][posicion] = jugador[1][posicion] - apuesta
 
 def liquidar(apuesta, color, gano, multiplicador):
     """
     Funcionalidad:
-        Paga las fichas si gano, cambia los puntos y guarda.
-        El pago incluye la apuesta devuelta (la apuesta ya fue descontada).
-
+        Paga las fichas si gano, cambia los puntos y guarda en el archivo.
     Entrada:
-        - apuesta(int): Fichas apostadas.
-        - color(str): Color apostado.
-        - gano(bool): True si gano, False si perdio.
-        - multiplicador(int): Veces la apuesta que recibe si gana.
-
+    - apuesta(int): Fichas apostadas.
+    - color(str): Color.
+    - gano(bool): Resultado.
+    - multiplicador(int): Pago.
     Salida:
-        - pagoTotal(int): Fichas que recibe el jugador.
+    - pagoTotal(int): Fichas que recibe el jugador.
     """
     pagoTotal = 0
     if gano:
         pagoTotal = apuesta * multiplicador
-        jugador[1][colores.index(color) + 1] = jugador[1][colores.index(color) + 1] + pagoTotal
+        posicion = colores.index(color) + 1
+        jugador[1][posicion] = jugador[1][posicion] + pagoTotal
         jugador[2] = jugador[2] + 2
     else:
         jugador[2] = jugador[2] - 1
-    guardar()
+    resultado = datos.guardarCambiosJugador(jugador)
+    if type(resultado) == str:
+        messagebox.showerror("Error al guardar", resultado)
     return pagoTotal
 
+def mostrarResultadoJuego(apuesta, color, gano, pagoTotal):
+    """
+    Funcionalidad:
+        Muestra el resultado de la jugada y actualiza el saldo en pantalla.
+    Entrada:
+    - apuesta(int): Fichas apostadas.
+    - color(str): Color.
+    - gano(bool): Resultado.
+    - pagoTotal(int): Pago.
+    Salida:
+    - Ninguna.
+    """
+    if gano:
+        widgets["resultado"].config(text="Gano! Recibe " + str(pagoTotal) + " ficha(s) " + color + " (ganancia neta: " + str(pagoTotal - apuesta) + ") y +2 puntos")
+    else:
+        widgets["resultado"].config(text="Perdio " + str(apuesta) + " ficha(s) " + color + " y -1 punto")
+    widgets["saldo"].config(text=textoSaldo())
 
 # Ventanas y elementos
 def cerrarTodo():
     """
     Funcionalidad:
         Cierra el programa.
-
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     estado["raiz"].destroy()
-
 
 def nuevaVentana(titulo, tamano, funcionAlCerrar):
     """
     Funcionalidad:
         Cierra la ventana actual y crea una nueva.
-
     Entrada:
-        - titulo(str): Titulo de la ventana.
-        - tamano(str): Tamano, por ejemplo "400x300".
-        - funcionAlCerrar(function): Funcion que se ejecuta al cerrar con la X.
-
+    - titulo(str): Titulo.
+    - tamano(str): Dimensiones.
+    - funcionAlCerrar(function): Accion al cerrar.
     Salida:
-        - ventana(Toplevel): La ventana nueva.
+    - ventana(Toplevel): La ventana nueva.
     """
     if estado["actual"] != "":
         estado["actual"].destroy()
@@ -257,52 +223,43 @@ def nuevaVentana(titulo, tamano, funcionAlCerrar):
     estado["actual"] = ventana
     return ventana
 
-
 def crearBoton(ventana, texto, funcion):
     """
     Funcionalidad:
         Crea un boton y lo coloca en la ventana.
-
     Entrada:
-        - ventana(Widget): Donde va el boton.
-        - texto(str): Texto del boton.
-        - funcion(function): Funcion que ejecuta el boton.
-
+    - ventana(Widget): Contenedor.
+    - texto(str): Texto.
+    - funcion(function): Comando.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     tk.Button(ventana, text=texto, width=24, command=funcion).pack(pady=4)
-
 
 def crearSelectorColor(ventana):
     """
     Funcionalidad:
         Crea los cuatro radiobuttons para escoger el color de ficha.
-
     Entrada:
-        - ventana(Widget): Donde van los radiobuttons.
-
+    - ventana(Widget): Donde van los radiobuttons.
     Salida:
-        - Ninguna (la variable queda en widgets["color"]).
+    - Ninguna.
     """
     widgets["color"] = tk.StringVar(value="Blanco")
     marco = tk.Frame(ventana)
     marco.pack(pady=5)
-    for i in range(4):
+    for i in range(len(colores)):
         texto = colores[i] + " ($" + str(valorFicha(colores[i])) + ")"
         tk.Radiobutton(marco, text=texto, variable=widgets["color"], value=colores[i]).grid(row=0, column=i)
-
 
 def crearCampoApuesta(ventana):
     """
     Funcionalidad:
         Crea el campo donde se escribe la apuesta.
-
     Entrada:
-        - ventana(Widget): Donde va el campo.
-
+    - ventana(Widget): Donde va el campo.
     Salida:
-        - Ninguna (el campo queda en widgets["apuesta"]).
+    - Ninguna.
     """
     marco = tk.Frame(ventana)
     marco.pack(pady=5)
@@ -316,139 +273,52 @@ def abrirSesion():
     """
     Funcionalidad:
         Abre la ventana de inicio de sesion.
-
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     ventana = nuevaVentana("Casino - Sesion", "430x440", cerrarTodo)
     sesion.crearVentanaSesion(iniciarSesion, ventana)
 
-
 def iniciarSesion(registroJugador):
     """
     Funcionalidad:
-        Revisa el registro del jugador y abre el menu principal.
-
+        Guarda el registro del jugador y abre el menu principal.
     Entrada:
-        - registroJugador(list): Datos del jugador.
-
+    - registroJugador(list): Datos del jugador.
     Salida:
-        - exito(bool): True si todo salio bien, False si no.
+    - Ninguna.
     """
-    if type(registroJugador) != list:
-        messagebox.showerror("Error", "El registro del jugador no es valido")
-        return False
+    global jugador
     if not datos.validarEstructuraJugador(registroJugador):
         messagebox.showerror("Error", "El registro del jugador no es valido")
-        return False
-    jugador[:] = registroJugador
+        return
+    jugador = registroJugador
     menuPrincipal()
-    return True
-
 
 def cerrarSesion():
     """
     Funcionalidad:
-        Pregunta si quiere cerrar sesion, guarda y vuelve al login.
-
+        Pregunta si quiere cerrar sesion y vuelve al login.
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
+    global jugador
     if messagebox.askyesno("Cerrar sesion", "Seguro que quiere cerrar la sesion?"):
-        guardar()
-        jugador[:] = [("", "", ""), [0.0, 0, 0, 0, 0], 0]
+        jugador = [("", "", ""), [0.0, 0, 0, 0, 0], 0]
         abrirSesion()
-
-
-def abrirE1(nombreModulo):
-    """
-    Funcionalidad:
-        Abre una pantalla de E1 o avisa si todavia no esta conectada.
-
-    Entrada:
-        - nombreModulo(str): Nombre dentro del diccionario modulosE1.
-
-    Salida:
-        - Ninguna.
-    """
-    if modulosE1[nombreModulo] == "":
-        messagebox.showwarning("No disponible", "'" + nombreModulo + "' todavia no esta conectado")
-    else:
-        modulosE1[nombreModulo]()
-
-
-def abrirRuleta():
-    """
-    Funcionalidad:
-        Abre la ruleta (E1).
-
-    Entrada:
-        - Ninguna.
-
-    Salida:
-        - Ninguna.
-    """
-    abrirE1("ruleta")
-
-
-def abrirBlackjack():
-    """
-    Funcionalidad:
-        Abre el blackjack (E1).
-
-    Entrada:
-        - Ninguna.
-
-    Salida:
-        - Ninguna.
-    """
-    abrirE1("blackjack")
-
-
-def abrirRanking():
-    """
-    Funcionalidad:
-        Abre el ranking (E1).
-
-    Entrada:
-        - Ninguna.
-
-    Salida:
-        - Ninguna.
-    """
-    abrirE1("ranking")
-
-
-def abrirAnalisis():
-    """
-    Funcionalidad:
-        Abre el analisis (E1).
-
-    Entrada:
-        - Ninguna.
-
-    Salida:
-        - Ninguna.
-    """
-    abrirE1("analisis")
-
 
 def menuPrincipal():
     """
     Funcionalidad:
         Muestra el menu principal.
-
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     ventana = nuevaVentana("Casino - Menu", "420x380", cerrarTodo)
     tk.Label(ventana, text="CASINO", font=("Arial", 16, "bold")).pack(pady=10)
@@ -456,102 +326,81 @@ def menuPrincipal():
     tk.Label(ventana, text=textoSaldo()).pack(pady=5)
     crearBoton(ventana, "Jugar", salaJuegos)
     crearBoton(ventana, "Fichas", ventanaFichas)
-    crearBoton(ventana, "Ranking", abrirRanking)
-    crearBoton(ventana, "Analisis", abrirAnalisis)
+    crearBoton(ventana, "Ranking", "")
+    crearBoton(ventana, "Analisis", "")
     crearBoton(ventana, "Cerrar sesion", cerrarSesion)
-
 
 def salaJuegos():
     """
     Funcionalidad:
         Muestra la sala con los botones de cada juego.
-
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     ventana = nuevaVentana("Casino - Juegos", "420x350", menuPrincipal)
     tk.Label(ventana, text="SALA DE JUEGOS", font=("Arial", 16, "bold")).pack(pady=10)
     tk.Label(ventana, text=textoSaldo()).pack(pady=5)
-    crearBoton(ventana, "Ruleta", abrirRuleta)
+    crearBoton(ventana, "Ruleta", "")
     crearBoton(ventana, "Tragamonedas", tragamonedas)
-    crearBoton(ventana, "Blackjack", abrirBlackjack)
+    crearBoton(ventana, "Blackjack", "")
     crearBoton(ventana, "Dados", dados)
     crearBoton(ventana, "Volver al menu", menuPrincipal)
-
 
 # Tragamonedas
 def volverDeTragamonedas():
     """
     Funcionalidad:
-        Vuelve a la sala, pero solo si los rodillos no estan girando.
-
+        Vuelve a la sala solo si los rodillos no estan girando.
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     if estado["girando"]:
         messagebox.showinfo("Girando", "Espere a que terminen de girar los rodillos")
     else:
         salaJuegos()
 
-
 def girarRodillos(paso, apuesta, color):
     """
     Funcionalidad:
         Mueve los rodillos paso a paso y al final revisa si gano.
-
     Entrada:
-        - paso(int): Numero de paso de la animacion.
-        - apuesta(int): Fichas apostadas.
-        - color(str): Color de las fichas.
-
+    - paso(int): Paso actual.
+    - apuesta(int): Fichas.
+    - color(str): Color de ficha.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     simbolos = []
-    for i in range(3):
-        estado["indices"][i] = (estado["indices"][i] + 1) % 5
+    for i in range(CANTIDAD_RODILLOS):
+        estado["indices"][i] = (estado["indices"][i] + 1) % CANTIDAD_SIMBOLOS
         simbolos.append(matrizRodillos[i][estado["indices"][i]])
     widgets["rodillos"].config(text=simbolos[0] + "  |  " + simbolos[1] + "  |  " + simbolos[2])
 
-    if paso < 12:
-        estado["actual"].after(150, girarRodillos, paso + 1, apuesta, color)
+    if paso < PASOS_ANIMACION:
+        estado["actual"].after(INTERVALO_ANIMACION, girarRodillos, paso + 1, apuesta, color)
         return
 
-    # Se busca la combinacion en el diccionario (si no esta, no gano)
     combinacion = (simbolos[0], simbolos[1], simbolos[2])
     multiplicador = 0
     if combinacion in combinacionesGanadoras:
         multiplicador = combinacionesGanadoras[combinacion]
-
-    gano = False
-    if multiplicador > 0:
-        gano = True
-
+    gano = multiplicador > 0
     pagoTotal = liquidar(apuesta, color, gano, multiplicador)
-    if gano:
-        widgets["resultado"].config(text="GANASTE! Recibe " + str(pagoTotal) + " ficha(s) " + color + " (ganancia neta: " + str(pagoTotal - apuesta) + ") y +2 puntos")
-    else:
-        widgets["resultado"].config(text="Perdio " + str(apuesta) + " ficha(s) " + color + " y -1 punto")
-    widgets["saldo"].config(text=textoSaldo())
+    mostrarResultadoJuego(apuesta, color, gano, pagoTotal)
     estado["girando"] = False
-
 
 def iniciarGiro():
     """
     Funcionalidad:
         Revisa la apuesta, descuenta las fichas y empieza a girar.
-
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     if estado["girando"]:
         return
@@ -559,26 +408,22 @@ def iniciarGiro():
     apuesta = validarApuesta(widgets["apuesta"].get(), color)
     if apuesta == 0:
         return
-    posicion = colores.index(color) + 1
-    jugador[1][posicion] = jugador[1][posicion] - apuesta
+    descontarApuesta(apuesta, color)
     widgets["saldo"].config(text=textoSaldo())
     widgets["resultado"].config(text="Girando...")
-    for i in range(3):
-        estado["indices"][i] = random.randint(0, 4)
+    for i in range(CANTIDAD_RODILLOS):
+        estado["indices"][i] = random.randint(0, CANTIDAD_SIMBOLOS - 1)
     estado["girando"] = True
     girarRodillos(1, apuesta, color)
-
 
 def tragamonedas():
     """
     Funcionalidad:
         Muestra la pantalla de la tragamonedas.
-
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     estado["girando"] = False
     ventana = nuevaVentana("Casino - Tragamonedas", "520x420", volverDeTragamonedas)
@@ -594,18 +439,50 @@ def tragamonedas():
     crearBoton(ventana, "Girar / Jugar otra vez", iniciarGiro)
     crearBoton(ventana, "Regresar a juegos", volverDeTragamonedas)
 
-
 # Dados
+def validarSumaExacta(textoSuma):
+    """
+    Funcionalidad:
+        Revisa que la suma exacta sea un entero entre 2 y 12.
+    Entrada:
+    - textoSuma(str): Texto ingresado por el usuario.
+    Salida:
+    - suma(int): Numero entero valido o 0 si es invalido.
+    """
+    if not esEntero(textoSuma) or int(textoSuma) < SUMA_MINIMA_DADOS or int(textoSuma) > SUMA_MAXIMA_DADOS:
+        messagebox.showwarning("Suma invalida", "Escriba un numero entero entre 2 y 12")
+        return 0
+    return int(textoSuma)
+
+def evaluarApuestaDados(tipo, tiradaDados, suma, sumaObjetivo):
+    """
+    Funcionalidad:
+        Determina si la tirada de dados cumple la apuesta seleccionada.
+    Entrada:
+    - tipo(str): Apuesta.
+    - tiradaDados(tuple): Dados.
+    - suma(int): Suma.
+    - sumaObjetivo(int): Meta.
+    Salida:
+    - gano(bool): True si acerto, False si perdio.
+    """
+    if tipo == "par":
+        return suma % 2 == 0
+    elif tipo == "impar":
+        return suma % 2 == 1
+    elif tipo == "dobles":
+        return tiradaDados[0] == tiradaDados[1]
+    else:
+        return suma == sumaObjetivo
+
 def lanzarDados():
     """
     Funcionalidad:
-        Revisa la apuesta, tira dos dados y dice si gano.
-
+        Revisa la apuesta, tira dos dados, liquida el pago y muestra el resultado.
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     color = widgets["color"].get()
     apuesta = validarApuesta(widgets["apuesta"].get(), color)
@@ -613,76 +490,42 @@ def lanzarDados():
         return
 
     tipo = widgets["tipo"].get()
-    textoSuma = widgets["suma"].get().strip()
-    multiplicador = 0
+    sumaObjetivo = 0
     if tipo == "sumaExacta":
-        if not esEntero(textoSuma):
-            messagebox.showwarning("Suma invalida", "Escriba un numero entero entre 2 y 12")
+        sumaObjetivo = validarSumaExacta(widgets["suma"].get().strip())
+        if sumaObjetivo == 0:
             return
-        if int(textoSuma) < 2 or int(textoSuma) > 12:
-            messagebox.showwarning("Suma invalida", "Escriba un numero entero entre 2 y 12")
-            return
-        multiplicador = pagosSumaExacta[int(textoSuma)]
-    else:
-        multiplicador = pagosDados[tipo]
 
-    posicion = colores.index(color) + 1
-    jugador[1][posicion] = jugador[1][posicion] - apuesta
-
-    # La tirada es una tupla con los valores de los 2 dados
-    tiradaDados = (random.randint(1, 6), random.randint(1, 6))
+    descontarApuesta(apuesta, color)
+    tiradaDados = (random.randint(1, CARAS_DADO), random.randint(1, CARAS_DADO))
     suma = tiradaDados[0] + tiradaDados[1]
-
-    gano = False
-    if tipo == "par":
-        if suma % 2 == 0:
-            gano = True
-    elif tipo == "impar":
-        if suma % 2 == 1:
-            gano = True
-    elif tipo == "dobles":
-        if tiradaDados[0] == tiradaDados[1]:
-            gano = True
-    elif tipo == "sumaExacta":
-        if suma == int(textoSuma):
-            gano = True
-
-    pagoTotal = liquidar(apuesta, color, gano, multiplicador)
+    gano = evaluarApuestaDados(tipo, tiradaDados, suma, sumaObjetivo)
+    pagoTotal = liquidar(apuesta, color, gano, pagosDados[tipo])
     widgets["dados"].config(text="Dados: " + str(tiradaDados) + "   Suma: " + str(suma))
-    if gano:
-        widgets["resultado"].config(text="Acerto! Recibe " + str(pagoTotal) + " ficha(s) " + color + " (ganancia neta: " + str(pagoTotal - apuesta) + ") y +2 puntos")
-    else:
-        widgets["resultado"].config(text="No acerto. Perdio " + str(apuesta) + " ficha(s) " + color + " y -1 punto")
-    widgets["saldo"].config(text=textoSaldo())
-
+    mostrarResultadoJuego(apuesta, color, gano, pagoTotal)
 
 def actualizarCampoSuma():
     """
     Funcionalidad:
-        Muestra el campo de suma exacta solo si ese tipo de apuesta esta elegido.
-
+        Habilita el campo de suma exacta solo si ese tipo de apuesta esta elegido.
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     if widgets["tipo"].get() == "sumaExacta":
-        widgets["marcoSuma"].pack(pady=5, before=widgets["dados"])
+        widgets["suma"].config(state="normal")
     else:
-        widgets["marcoSuma"].pack_forget()
-
+        widgets["suma"].config(state="disabled")
 
 def dados():
     """
     Funcionalidad:
         Muestra la pantalla del juego de dados.
-
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     ventana = nuevaVentana("Casino - Dados", "520x560", salaJuegos)
     tk.Label(ventana, text="JUEGO DE DADOS", font=("Arial", 16, "bold")).pack(pady=8)
@@ -697,22 +540,16 @@ def dados():
     for fila in range(2):
         for columna in range(2):
             tipo = matrizOpcionesDados[fila][columna]
-            if tipo == "sumaExacta":
-                texto = tipo + " (x" + str(min(pagosSumaExacta.values())) + " a x" + str(max(pagosSumaExacta.values())) + ")"
-            else:
-                texto = tipo + " (x" + str(pagosDados[tipo]) + ")"
+            texto = tipo + " (x" + str(pagosDados[tipo]) + ")"
             tk.Radiobutton(marcoTipo, text=texto, variable=widgets["tipo"], value=tipo, command=actualizarCampoSuma).grid(row=fila, column=columna, sticky="w", padx=10)
 
-    # Este marco no se muestra hasta que se elige sumaExacta
-    widgets["marcoSuma"] = tk.Frame(ventana)
-    tk.Label(widgets["marcoSuma"], text="Suma exacta (2 al 12):").grid(row=0, column=0)
-    widgets["suma"] = tk.Entry(widgets["marcoSuma"], width=6)
+    marcoSuma = tk.Frame(ventana)
+    marcoSuma.pack(pady=5)
+    tk.Label(marcoSuma, text="Suma exacta (2 al 12):").grid(row=0, column=0)
+    widgets["suma"] = tk.Entry(marcoSuma, width=6)
     widgets["suma"].insert(0, "7")
+    widgets["suma"].config(state="disabled")
     widgets["suma"].grid(row=0, column=1)
-    textoPagos = "Pagos: "
-    for suma in range(2, 13):
-        textoPagos = textoPagos + str(suma) + "=x" + str(pagosSumaExacta[suma]) + "  "
-    tk.Label(widgets["marcoSuma"], text=textoPagos, font=("Arial", 8), wraplength=480).grid(row=1, column=0, columnspan=2)
 
     widgets["dados"] = tk.Label(ventana, text="Dados: (-, -)", font=("Arial", 13, "bold"))
     widgets["dados"].pack(pady=5)
@@ -725,13 +562,11 @@ def dados():
 def refrescarFichas():
     """
     Funcionalidad:
-        Actualiza el dinero disponible, las fichas por color y reinicia los campos de entrada.
-
+        Actualiza el dinero disponible, las fichas por color y reinicia los campos.
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     widgets["dinero"].config(text="Dinero: $" + str(jugador[1][0]) + "   Total fichas: " + str(totalFichas()))
     for color in colores:
@@ -739,101 +574,105 @@ def refrescarFichas():
         widgets["cantidad"][color].delete(0, tk.END)
         widgets["cantidad"][color].insert(0, "0")
 
+def leerCantidadesFichas(esCompra):
+    """
+    Funcionalidad:
+        Lee y valida las cantidades por color, calculando el total y el monto.
+    Entrada:
+    - esCompra(bool): True si es compra, False si es canje.
+    Salida:
+    - resultado(list): [cantidades, totalOperacion, montoTotal] o [] si hay error.
+    """
+    cantidades = {}
+    totalOperacion = 0
+    montoTotal = 0
+    for i in range(len(colores)):
+        color = colores[i]
+        texto = widgets["cantidad"][color].get().strip()
+        if not esEntero(texto):
+            messagebox.showwarning("Cantidad invalida", "Solo numeros enteros en " + color)
+            return []
+        cantidad = int(texto)
+        if not esCompra and cantidad > fichasDe(color):
+            messagebox.showerror("Fichas insuficientes", "Solo tiene " + str(fichasDe(color)) + " ficha(s) " + color)
+            return []
+        cantidades[llavesColores[i]] = cantidad
+        totalOperacion = totalOperacion + cantidad
+        montoTotal = montoTotal + cantidad * valorFicha(color)
+    return [cantidades, totalOperacion, montoTotal]
+
+def validarOperacionFichas(esCompra, totalOperacion, montoTotal):
+    """
+    Funcionalidad:
+        Valida que la operacion tenga fichas, que alcance el dinero y pide confirmacion.
+    Entrada:
+    - esCompra(bool): Compra/canje.
+    - totalOperacion(int): Fichas.
+    - montoTotal(int): Monto.
+    Salida:
+    - valido(bool): True si es valido y confirmado, False en caso contrario.
+    """
+    if totalOperacion == 0:
+        messagebox.showwarning("Vacio", "Escriba una cantidad mayor que cero en algun color")
+        return False
+    if esCompra and montoTotal > jugador[1][0]:
+        messagebox.showerror("Dinero insuficiente", "Cuesta $" + str(montoTotal) + " y solo tiene $" + str(jugador[1][0]))
+        return False
+    verbo = "Comprar " if esCompra else "Canjear "
+    return messagebox.askyesno("Confirmar", verbo + str(totalOperacion) + " ficha(s) por $" + str(montoTotal) + "?")
 
 def operarFichas(esCompra):
     """
     Funcionalidad:
         Hace la compra o el canje de fichas despues de revisar y confirmar.
-
     Entrada:
-        - esCompra(bool): True si es compra, False si es canje.
-
+    - esCompra(bool): True si es compra, False si es canje.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
-    cantidades = {}
-    totalOperacion = 0
-    montoTotal = 0
-    for i in range(4):
-        color = colores[i]
-        texto = widgets["cantidad"][color].get().strip()
-        if not esEntero(texto):
-            messagebox.showwarning("Cantidad invalida", "Solo numeros enteros en " + color)
-            return
-        cantidad = int(texto)
-        if not esCompra and cantidad > fichasDe(color):
-            messagebox.showerror("Fichas insuficientes", "Solo tiene " + str(fichasDe(color)) + " ficha(s) " + color)
-            return
-        cantidades[llavesColores[i]] = cantidad
-        totalOperacion = totalOperacion + cantidad
-        montoTotal = montoTotal + cantidad * valorFicha(color)
-
-    if totalOperacion == 0:
-        messagebox.showwarning("Vacio", "Escriba una cantidad mayor que cero en algun color")
+    lectura = leerCantidadesFichas(esCompra)
+    if len(lectura) == 0 or not validarOperacionFichas(esCompra, lectura[1], lectura[2]):
         return
-    if esCompra and montoTotal > jugador[1][0]:
-        messagebox.showerror("Dinero insuficiente", "Cuesta $" + str(montoTotal) + " y solo tiene $" + str(jugador[1][0]))
-        return
-
     if esCompra:
-        verbo = "Comprar "
+        resultado = datos.comprarFichas(jugador, lectura[0])
     else:
-        verbo = "Canjear "
-    if not messagebox.askyesno("Confirmar", verbo + str(totalOperacion) + " ficha(s) por $" + str(montoTotal) + "?"):
-        return
-
-    respaldo = list(jugador[1])
-    if esCompra:
-        resultado = datos.comprarFichas(jugador, cantidades)
-    else:
-        resultado = datos.canjearFichas(jugador, cantidades)
-
-    if isinstance(resultado, str):
-        jugador[1] = respaldo
+        resultado = datos.canjearFichas(jugador, lectura[0])
+    if type(resultado) == str:
         messagebox.showerror("Error", "No se pudo completar: " + resultado)
     else:
         messagebox.showinfo("Listo", "Operacion realizada")
     refrescarFichas()
 
-
 def comprarFichas():
     """
     Funcionalidad:
         Hace una compra de fichas.
-
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     operarFichas(True)
-
 
 def canjearFichas():
     """
     Funcionalidad:
         Hace un canje de fichas.
-
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     operarFichas(False)
-
 
 def ventanaFichas():
     """
     Funcionalidad:
         Muestra la pantalla de compra y canje de fichas.
-
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     ventana = nuevaVentana("Casino - Fichas", "480x420", menuPrincipal)
     tk.Label(ventana, text="COMPRA Y CANJE DE FICHAS", font=("Arial", 14, "bold")).pack(pady=8)
@@ -843,12 +682,12 @@ def ventanaFichas():
     marcoTabla = tk.Frame(ventana)
     marcoTabla.pack(pady=8)
     titulos = ["Color", "Valor ($)", "Tienes", "Cantidad"]
-    for i in range(4):
+    for i in range(len(titulos)):
         tk.Label(marcoTabla, text=titulos[i], font=("Arial", 10, "bold"), width=10).grid(row=0, column=i)
 
     widgets["tiene"] = {}
     widgets["cantidad"] = {}
-    for i in range(4):
+    for i in range(len(colores)):
         color = colores[i]
         tk.Label(marcoTabla, text=color).grid(row=i + 1, column=0, pady=3)
         tk.Label(marcoTabla, text="$" + str(valorFicha(color))).grid(row=i + 1, column=1)
@@ -869,17 +708,15 @@ def iniciar():
     """
     Funcionalidad:
         Crea la ventana raiz escondida, abre el login y arranca el programa.
-
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna.
+    - Ninguna.
     """
     estado["raiz"] = tk.Tk()
     estado["raiz"].withdraw()
     abrirSesion()
     estado["raiz"].mainloop()
 
-
-iniciar()
+if __name__ == "__main__":
+    iniciar()
