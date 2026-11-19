@@ -5,11 +5,12 @@
 # - E1 (Mishelle Álvarez): Ventana de sesión, ruleta, blackjack, ranking, análisis, cerrar sesión y manejo de datos con pickle.
 # - E2 (Alexandra De Gracia): Menú principal, ventana de juegos, tragamonedas, dados, ventana de fichas y documentación interna.
 
-import pickle
 import tkinter as tk
 from tkinter import messagebox
 
 import datos
+
+camposSesion = {}
 
 
 def validarRegistro(username, nombre, apellido):
@@ -69,7 +70,72 @@ def registrarDesdeFormulario(username, nombre, apellido):
     return datos.registrarJugador(username, nombre, apellido)
 
 
-def crearVentanaSesion(alIniciarSesion=False, ventanaPadre=False):
+def registrar():
+    """
+    Funcionalidad:
+        Procesa el formulario de registro de un nuevo jugador, muestra un aviso
+        al completarse y coloca el username registrado en el campo de inicio de sesion.
+
+    Entrada:
+        - Ninguna.
+
+    Salida:
+        - Ninguna: Registra al jugador y actualiza los campos de la ventana sin retornar un valor.
+    """
+    resultado = registrarDesdeFormulario(
+        camposSesion["usernameRegistro"].get(),
+        camposSesion["nombre"].get(),
+        camposSesion["apellido"].get()
+    )
+    if type(resultado) == str:
+        messagebox.showerror("No se pudo registrar", resultado)
+        return
+
+    messagebox.showinfo(
+        "Registro correcto",
+        "Jugador registrado. Ya puede iniciar sesion."
+    )
+    camposSesion["usernameSesion"].delete(0, tk.END)
+    camposSesion["usernameSesion"].insert(0, resultado[0][0])
+    camposSesion["usernameRegistro"].delete(0, tk.END)
+    camposSesion["nombre"].delete(0, tk.END)
+    camposSesion["apellido"].delete(0, tk.END)
+
+
+def entrar():
+    """
+    Funcionalidad:
+        Valida el username ingresado para iniciar sesion y transfiere el registro
+        del jugador a la funcion conectada en alIniciarSesion.
+
+    Entrada:
+        - Ninguna.
+
+    Salida:
+        - Ninguna: Inicia la sesion del jugador y abre el menu principal sin retornar un valor.
+    """
+    resultado = iniciarSesion(camposSesion["usernameSesion"].get())
+    if type(resultado) == str:
+        messagebox.showerror("No se pudo iniciar sesion", resultado)
+        return
+
+    jugador = resultado
+    alIniciarSesion = camposSesion["alIniciarSesion"]
+    ventanaPadre = camposSesion["ventanaPadre"]
+    ventana = camposSesion["ventana"]
+
+    if alIniciarSesion:
+        if not ventanaPadre:
+            ventana.destroy()
+        alIniciarSesion(jugador)
+    else:
+        messagebox.showinfo(
+            "Sesion iniciada",
+            "Bienvenido, " + jugador[0][1] + " " + jugador[0][2] + "."
+        )
+
+
+def crearVentanaSesion(alIniciarSesion, ventanaPadre):
     """
     Funcionalidad:
         Crea y configura la ventana de registro e inicio de sesión de jugadores,
@@ -86,6 +152,10 @@ def crearVentanaSesion(alIniciarSesion=False, ventanaPadre=False):
         ventana = ventanaPadre
     else:
         ventana = tk.Tk()
+
+    camposSesion["alIniciarSesion"] = alIniciarSesion
+    camposSesion["ventanaPadre"] = ventanaPadre
+    camposSesion["ventana"] = ventana
 
     ventana.title("Casino - Sesion")
     ventana.geometry("430x440")
@@ -109,51 +179,20 @@ def crearVentanaSesion(alIniciarSesion=False, ventanaPadre=False):
     tk.Label(marcoRegistro, text="Username:").grid(
         row=0, column=0, sticky="w", pady=4
     )
-    entradaUsernameRegistro = tk.Entry(marcoRegistro, width=27)
-    entradaUsernameRegistro.grid(row=0, column=1, pady=4)
+    camposSesion["usernameRegistro"] = tk.Entry(marcoRegistro, width=27)
+    camposSesion["usernameRegistro"].grid(row=0, column=1, pady=4)
 
     tk.Label(marcoRegistro, text="Nombre:").grid(
         row=1, column=0, sticky="w", pady=4
     )
-    entradaNombre = tk.Entry(marcoRegistro, width=27)
-    entradaNombre.grid(row=1, column=1, pady=4)
+    camposSesion["nombre"] = tk.Entry(marcoRegistro, width=27)
+    camposSesion["nombre"].grid(row=1, column=1, pady=4)
 
     tk.Label(marcoRegistro, text="Apellido:").grid(
         row=2, column=0, sticky="w", pady=4
     )
-    entradaApellido = tk.Entry(marcoRegistro, width=27)
-    entradaApellido.grid(row=2, column=1, pady=4)
-
-    def registrar():
-        """
-        Funcionalidad:
-            Procesa el formulario de registro de un nuevo jugador, muestra un aviso
-            al completarse y coloca el username registrado en el campo de inicio de sesion.
-
-        Entrada:
-            - Ninguna.
-
-        Salida:
-            - Ninguna: Registra al jugador y actualiza los campos de la ventana sin retornar un valor.
-        """
-        resultado = registrarDesdeFormulario(
-            entradaUsernameRegistro.get(),
-            entradaNombre.get(),
-            entradaApellido.get()
-        )
-        if isinstance(resultado, str):
-            messagebox.showerror("No se pudo registrar", resultado)
-            return
-
-        messagebox.showinfo(
-            "Registro correcto",
-            "Jugador registrado. Ya puede iniciar sesion."
-        )
-        entradaUsernameSesion.delete(0, tk.END)
-        entradaUsernameSesion.insert(0, resultado[0][0])
-        entradaUsernameRegistro.delete(0, tk.END)
-        entradaNombre.delete(0, tk.END)
-        entradaApellido.delete(0, tk.END)
+    camposSesion["apellido"] = tk.Entry(marcoRegistro, width=27)
+    camposSesion["apellido"].grid(row=2, column=1, pady=4)
 
     tk.Button(
         marcoRegistro, text="Registrarse", command=registrar, width=18
@@ -167,41 +206,12 @@ def crearVentanaSesion(alIniciarSesion=False, ventanaPadre=False):
     tk.Label(marcoSesion, text="Username:").grid(
         row=0, column=0, sticky="w", pady=4
     )
-    entradaUsernameSesion = tk.Entry(marcoSesion, width=27)
-    entradaUsernameSesion.grid(row=0, column=1, pady=4)
-
-    def entrar():
-        """
-        Funcionalidad:
-            Valida el username ingresado para iniciar sesion y transfiere el registro
-            del jugador a la funcion conectada en alIniciarSesion.
-
-        Entrada:
-            - Ninguna.
-
-        Salida:
-            - Ninguna: Inicia la sesion del jugador y abre el menu principal sin retornar un valor.
-        """
-        resultado = iniciarSesion(entradaUsernameSesion.get())
-        if isinstance(resultado, str):
-            messagebox.showerror("No se pudo iniciar sesion", resultado)
-            return
-
-        jugador = resultado
-        if alIniciarSesion:
-            if not ventanaPadre:
-                ventana.destroy()
-            alIniciarSesion(jugador)
-        else:
-            messagebox.showinfo(
-                "Sesion iniciada",
-                "Bienvenido, " + jugador[0][1] + " " + jugador[0][2] + "."
-            )
+    camposSesion["usernameSesion"] = tk.Entry(marcoSesion, width=27)
+    camposSesion["usernameSesion"].grid(row=0, column=1, pady=4)
 
     tk.Button(
         marcoSesion, text="Iniciar sesion", command=entrar, width=18
     ).grid(row=1, column=0, columnspan=2, pady=(10, 2))
-
 
     if not ventanaPadre:
         ventana.mainloop()
