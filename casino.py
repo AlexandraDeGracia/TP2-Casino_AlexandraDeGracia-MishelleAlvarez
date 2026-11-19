@@ -497,26 +497,13 @@ def lanzarDados():
             return
 
     descontarApuesta(apuesta, color)
+    # Tupla con los 2 dados
     tiradaDados = (random.randint(1, CARAS_DADO), random.randint(1, CARAS_DADO))
     suma = tiradaDados[0] + tiradaDados[1]
     gano = evaluarApuestaDados(tipo, tiradaDados, suma, sumaObjetivo)
     pagoTotal = liquidar(apuesta, color, gano, pagosDados[tipo])
     widgets["dados"].config(text="Dados: " + str(tiradaDados) + "   Suma: " + str(suma))
     mostrarResultadoJuego(apuesta, color, gano, pagoTotal)
-
-def actualizarCampoSuma():
-    """
-    Funcionalidad:
-        Habilita el campo de suma exacta solo si ese tipo de apuesta esta elegido.
-    Entrada:
-    - Ninguna.
-    Salida:
-    - Ninguna.
-    """
-    if widgets["tipo"].get() == "sumaExacta":
-        widgets["suma"].config(state="normal")
-    else:
-        widgets["suma"].config(state="disabled")
 
 def dados():
     """
@@ -541,14 +528,13 @@ def dados():
         for columna in range(2):
             tipo = matrizOpcionesDados[fila][columna]
             texto = tipo + " (x" + str(pagosDados[tipo]) + ")"
-            tk.Radiobutton(marcoTipo, text=texto, variable=widgets["tipo"], value=tipo, command=actualizarCampoSuma).grid(row=fila, column=columna, sticky="w", padx=10)
+            tk.Radiobutton(marcoTipo, text=texto, variable=widgets["tipo"], value=tipo).grid(row=fila, column=columna, sticky="w", padx=10)
 
     marcoSuma = tk.Frame(ventana)
     marcoSuma.pack(pady=5)
     tk.Label(marcoSuma, text="Suma exacta (2 al 12):").grid(row=0, column=0)
     widgets["suma"] = tk.Entry(marcoSuma, width=6)
     widgets["suma"].insert(0, "7")
-    widgets["suma"].config(state="disabled")
     widgets["suma"].grid(row=0, column=1)
 
     widgets["dados"] = tk.Label(ventana, text="Dados: (-, -)", font=("Arial", 13, "bold"))
