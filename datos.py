@@ -5,11 +5,9 @@
 # E1 (Mishelle Álvarez): Ventana de sesión, ruleta, blackjack, ranking, análisis y manejo de datos con pickle.
 # E2 (Alexandra De Gracia): Menú principal, ventana de juegos, tragamonedas, dados, ventana de fichas, cerrar sesión y documentación interna.
 
-import os
 import pickle
 
 NOMBRE_ARCHIVO = "jugadores"
-RUTA_ARCHIVO = os.path.join(os.path.dirname(os.path.abspath(__file__)), NOMBRE_ARCHIVO)
 
 VALOR_FICHAS = {
     "rojas": 10,
@@ -77,15 +75,15 @@ def cargarJugadores():
     - jugadores(list o str): Lista de registros de jugadores, o texto de error si el archivo esta danado.
     """
     try:
-        archivo = open(RUTA_ARCHIVO, "rb")
+        archivo = open(NOMBRE_ARCHIVO, "rb")
         jugadores = pickle.load(archivo)
         archivo.close()
     except FileNotFoundError:
         return []
-    except (EOFError, pickle.UnpicklingError, ValueError, AttributeError):
-        return "El archivo de jugadores esta danado."
     except OSError:
         return "Error al leer el archivo de jugadores."
+    except Exception:
+        return "El archivo de jugadores esta danado."
 
     if type(jugadores) != list:
         return "El archivo de jugadores no tiene un formato valido."
@@ -114,7 +112,7 @@ def guardarJugadores(jugadores):
             return "No se puede guardar: hay un jugador con datos invalidos."
 
     try:
-        archivo = open(RUTA_ARCHIVO, "wb")
+        archivo = open(NOMBRE_ARCHIVO, "wb")
         pickle.dump(jugadores, archivo)
         archivo.close()
         return True
@@ -245,7 +243,7 @@ def comprarFichas(jugador, cantidades):
 
     resultadoGuardado = guardarCambiosJugador(jugador)
     if resultadoGuardado is not True:
-        jugador[1] = recursosAnteriores
+        jugador[1][:] = recursosAnteriores
         return resultadoGuardado
     return costoTotal
 
@@ -277,7 +275,7 @@ def canjearFichas(jugador, cantidades):
     jugador[1][0] = float(jugador[1][0]) + dineroRecibido
     resultadoGuardado = guardarCambiosJugador(jugador)
     if resultadoGuardado is not True:
-        jugador[1] = recursosAnteriores
+        jugador[1][:] = recursosAnteriores
         return resultadoGuardado
     return dineroRecibido
 

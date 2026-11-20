@@ -1,9 +1,6 @@
 # Proyecto: TP2 - Casino
 # Integrantes: Mishelle Álvarez y Alexandra De Gracia
 # Descripción general: Aplicación de casino con interfaz gráfica en Python usando tkinter.
-# División de responsabilidades:
-# E1 (Mishelle Álvarez): Ventana de sesión, ruleta, blackjack, ranking, análisis y manejo de datos con pickle.
-# E2 (Alexandra De Gracia): Menú principal, ventana de juegos, tragamonedas, dados, ventana de fichas, cerrar sesión y documentación interna.
 
 import tkinter as tk
 from tkinter import messagebox

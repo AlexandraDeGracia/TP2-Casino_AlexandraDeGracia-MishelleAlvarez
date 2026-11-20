@@ -97,7 +97,7 @@ También se usan estas estructuras:
 
 ## 10. Cómo ejecutar
 
-Se necesita Python 3.5.1 o superior (solo biblioteca estándar: tkinter, random, pickle) y los archivos casino.py, datos.py y sesion.py en la misma carpeta. En una terminal dentro de esa carpeta:
+Se necesita Python 3.5.1 o superior (solo biblioteca estándar: tkinter, random, pickle,) y los archivos casino.py, datos.py y sesion.py en la misma carpeta. En una terminal dentro de esa carpeta:
 
 python casino.py
 
