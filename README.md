@@ -7,9 +7,15 @@ Casino virtual hecho en Python con Tkinter. Permite crear una cuenta, iniciar se
 - **Mishelle Álvarez (E1):** trabajó en la creación de los archivos datos.py y sesion.py.
 - **Alexandra De Gracia (E2):** trabajó en casino.py, integró los módulos y desarrolló el menú, la sala de juegos, la tragamonedas, los dados, la ventana de compra y canje de fichas y el cierre de sesión.
 
-## 2. Repositorio
+## 2. Repositorio y documentación
 
+**Repositorio de GitHub:**  
 https://github.com/AlexandraDeGracia/TP2-Casino_AlexandraDeGracia-MishelleAlvarez.git
+
+**Carpeta de Google Drive:**  
+https://drive.google.com/drive/folders/1pscZj1tz6fyjQIS3PW6uQXbfxKfHTkts?usp=sharing
+
+En la carpeta de Google Drive se encuentran los documentos complementarios del proyecto, corresponden al registro de estado de tiempo, el documento de habilidades blandas (autoevaluación) y la documentación relacionada con Scrum.
 
 ## 3. ¿Qué puede hacer el programa?
 
