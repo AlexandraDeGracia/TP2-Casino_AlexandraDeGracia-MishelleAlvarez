@@ -2,8 +2,8 @@
 # Integrantes: Mishelle Álvarez y Alexandra De Gracia
 # Descripción general: Aplicación de casino con interfaz gráfica en Python usando tkinter.
 # División de responsabilidades:
-# - E1 (Mishelle Álvarez): Ventana de sesión, ruleta, blackjack, ranking, análisis, cerrar sesión y manejo de datos con pickle.
-# - E2 (Alexandra De Gracia): Menú principal, ventana de juegos, tragamonedas, dados, ventana de fichas y documentación interna.
+# E1 (Mishelle Álvarez): Ventana de sesión, ruleta, blackjack, ranking, análisis y manejo de datos con pickle.
+# E2 (Alexandra De Gracia): Menú principal, ventana de juegos, tragamonedas, dados, ventana de fichas, cerrar sesión y documentación interna.
 
 import tkinter as tk
 from tkinter import messagebox
@@ -18,14 +18,12 @@ def validarRegistro(username, nombre, apellido):
     Funcionalidad:
         Valida que los tres campos del registro (username, nombre y apellido)
         contengan texto y no estén vacíos.
-
     Entrada:
-        - username(str): Nombre de usuario ingresado.
-        - nombre(str): Nombre del jugador ingresado.
-        - apellido(str): Apellido del jugador ingresado.
-
+    - username(str): Nombre de usuario ingresado.
+    - nombre(str): Nombre del jugador ingresado.
+    - apellido(str): Apellido del jugador ingresado.
     Salida:
-        - es_valido(bool): True si los tres campos tienen contenido, False en caso contrario.
+    - esValido(bool): True si los tres campos tienen contenido, False en caso contrario.
     """
     return bool(username.strip() and nombre.strip() and apellido.strip())
 
@@ -34,17 +32,17 @@ def iniciarSesion(username):
     """
     Funcionalidad:
         Busca el jugador por su username en el archivo de jugadores y devuelve su registro si existe.
-
     Entrada:
-        - username(str): Nombre de usuario ingresado para iniciar sesion.
-
+    - username(str): Nombre de usuario ingresado para iniciar sesion.
     Salida:
-        - resultado(list o str): Registro del jugador encontrado o mensaje de error si fallo.
+    - resultado(list o str): Registro del jugador encontrado o mensaje de error si fallo.
     """
     if not username.strip():
         return "Escriba su username."
 
     jugador = datos.buscarJugador(username)
+    if type(jugador) == str:
+        return jugador
     if not jugador:
         return "No existe un jugador con ese username."
 
@@ -55,14 +53,12 @@ def registrarDesdeFormulario(username, nombre, apellido):
     """
     Funcionalidad:
         Valida los datos ingresados en el formulario y registra al nuevo jugador en el archivo de datos.
-
     Entrada:
-        - username(str): Nombre de usuario unico del jugador.
-        - nombre(str): Nombre del jugador.
-        - apellido(str): Apellido del jugador.
-
+    - username(str): Nombre de usuario unico del jugador.
+    - nombre(str): Nombre del jugador.
+    - apellido(str): Apellido del jugador.
     Salida:
-        - resultado(list o str): Registro del jugador recién creado o mensaje de error si fallo.
+    - resultado(list o str): Registro del jugador recién creado o mensaje de error si fallo.
     """
     if not validarRegistro(username, nombre, apellido):
         return "Complete username, nombre y apellido."
@@ -73,14 +69,11 @@ def registrarDesdeFormulario(username, nombre, apellido):
 def registrar():
     """
     Funcionalidad:
-        Procesa el formulario de registro de un nuevo jugador, muestra un aviso
-        al completarse y coloca el username registrado en el campo de inicio de sesion.
-
+        Procesa el formulario de registro de un nuevo jugador, muestra un aviso al completarse y coloca el username registrado en el campo de inicio de sesion.
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna: Registra al jugador y actualiza los campos de la ventana sin retornar un valor.
+    - Ninguna: Registra al jugador y actualiza los campos de la ventana sin retornar un valor.
     """
     resultado = registrarDesdeFormulario(
         camposSesion["usernameRegistro"].get(),
@@ -105,14 +98,11 @@ def registrar():
 def entrar():
     """
     Funcionalidad:
-        Valida el username ingresado para iniciar sesion y transfiere el registro
-        del jugador a la funcion conectada en alIniciarSesion.
-
+        Valida el username ingresado para iniciar sesion y transfiere el registro del jugador a la funcion conectada en alIniciarSesion.
     Entrada:
-        - Ninguna.
-
+    - Ninguna.
     Salida:
-        - Ninguna: Inicia la sesion del jugador y abre el menu principal sin retornar un valor.
+    - Ninguna: Inicia la sesion del jugador y abre el menu principal sin retornar un valor.
     """
     resultado = iniciarSesion(camposSesion["usernameSesion"].get())
     if type(resultado) == str:
@@ -138,15 +128,12 @@ def entrar():
 def crearVentanaSesion(alIniciarSesion, ventanaPadre):
     """
     Funcionalidad:
-        Crea y configura la ventana de registro e inicio de sesión de jugadores,
-        reutilizando la ventana recibida en ventanaPadre o creando una ventana propia si se ejecuta de forma independiente.
-
+        Crea y configura la ventana de registro e inicio de sesión de jugadores, reutilizando la ventana recibida en ventanaPadre o creando una ventana propia si se ejecuta de forma independiente.
     Entrada:
-        - alIniciarSesion(function): Función que recibe el registro del jugador al iniciar sesión.
-        - ventanaPadre(Toplevel): Ventana contenedora donde se construye la interfaz de sesión.
-
+    - alIniciarSesion(function): Función que recibe el registro del jugador al iniciar sesión.
+    - ventanaPadre(Tk o Toplevel): Ventana contenedora de Tkinter donde se construye la interfaz de sesión (o False si se abre de forma independiente).
     Salida:
-        - ventana(Toplevel): Ventana de sesión configurada con los formularios de registro e ingreso.
+    - ventana(Tk o Toplevel): Ventana contenedora de sesión configurada con los formularios de registro e ingreso.
     """
     if ventanaPadre:
         ventana = ventanaPadre
