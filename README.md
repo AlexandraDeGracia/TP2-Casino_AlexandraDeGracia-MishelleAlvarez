@@ -64,6 +64,8 @@ También se usan estas estructuras:
 - Se definieron los símbolos Cereza, Limón, Campana, Estrella y Siete para los rodillos.
 - El progreso del jugador se guarda automáticamente después de cada jugada, compra o canje.
 - Se unificó en mostrarResultadoJuego (junto con liquidar) la forma de pagar y mostrar el resultado de la tragamonedas y los dados para evitar código repetido.
+- Por que se uso open y close es para que los jugadores no se pierdan al cerrar el programa. Guardamos la lista en un archivo llamado jugadores (sin extensión, como recomienda el enunciado): con open(..., "wb") y pickle.dump guardamos, y con open(..., "rb") y pickle.load leemos. Con close cerramos el archivo al terminar para que todo quede bien guardado.
+
 
 ## 7. Decisiones descartadas
 
