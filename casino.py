@@ -505,7 +505,6 @@ def lanzarDados():
             return
 
     descontarApuesta(apuesta, color)
-    # Tupla con los 2 dados
     tiradaDados = (random.randint(1, CARAS_DADO), random.randint(1, CARAS_DADO))
     suma = tiradaDados[0] + tiradaDados[1]
     gano = evaluarApuestaDados(tipo, tiradaDados, suma, sumaObjetivo)

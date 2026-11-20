@@ -76,24 +76,24 @@ También se usan estas estructuras:
 
 ## 8. Puntos del enunciado que no estaban definidos o eran inconsistentes
 
-- **Saldo inicial:** el enunciado no dice con cuánto empieza un jugador nuevo, así que se establecieron 100 dólares.
-- **Puntos en los dados:** el enunciado no especifica cuántos puntos se suman o restan en dados, aunque indica que el puntaje general puede sumar o restar. Como supuesto, se aplicó el mismo criterio de la tragamonedas (+2 al ganar y -1 al perder), usando pagosDados (2, 2, 5 y 12) como multiplicador de fichas.
-- **Suma exacta:** se dejó el multiplicador 12 para cualquier suma exacta, aunque no todas las sumas tengan la misma probabilidad.
-- **Pagos de la tragamonedas:** el texto dice que las fichas se duplican, mientras el ejemplo muestra pagos de 50 y 20 fichas. Se siguió la regla del texto aplicando x2 en todas las combinaciones.
-- **Símbolos de la tragamonedas:** el enunciado solo menciona dos ejemplos (diamante y campana) para los 5 símbolos, así que se definieron Cereza, Limón, Campana, Estrella y Siete.
+- **Saldo inicial:** el enunciado no indica un monto de inicio, así que cada cuenta nueva arranca con 100 dólares.
+- **Puntos en los dados:** el enunciado no aclara cuántos puntos sumar o restar en dados, por lo que se aplicó la misma regla de la tragamonedas (+2 al ganar y -1 al perder), dejando pagosDados (2, 2, 5 y 12) como multiplicador de fichas.
+- **Suma exacta:** se mantuvo el multiplicador x12 de pagosDados para cualquier suma exacta, aunque no todas tengan la misma probabilidad.
+- **Pagos de la tragamonedas:** el texto pide duplicar las fichas, mientras el ejemplo muestra pagos de 50 y 20. Se siguió el texto aplicando x2 en todas las combinaciones.
+- **Símbolos de la tragamonedas:** el enunciado solo da dos ejemplos (diamante y campana) para los 5 símbolos, así que se usaron Cereza, Limón, Campana, Estrella y Siete.
 
 ## 9. Validaciones
 
-- Campos vacíos al registrarse (username, nombre y apellido obligatorios) o username vacío al iniciar sesión.
-- Usuarios repetidos al registrarse y usuarios inexistentes al iniciar sesión.
-- Números enteros únicamente (sin letras, decimales ni signos) en fichas y apuestas.
-- Apuesta mayor que cero y dentro del total de fichas disponibles de ese color.
-- Bloqueo para volver a girar, salir o cerrar la tragamonedas con la X mientras los rodillos giran (muestra un aviso).
-- Aviso cuando falta dinero al comprar o faltan fichas al canjear.
-- Operaciones de compra o canje con todas las cantidades en cero.
-- Confirmación previa antes de comprar fichas, canjear fichas o cerrar sesión.
-- Suma exacta en dados entre 2 y 12, revisada solo cuando se elige sumaExacta.
-- Si el archivo jugadores está dañado o tiene un registro inválido, el programa muestra un mensaje de error y no sobrescribe los datos.
+- Datos vacíos al registrarse o al iniciar sesión.
+- Usuarios repetidos al registrarse y cuentas inexistentes al entrar.
+- Solo enteros (sin letras, decimales ni signos) en fichas y apuestas.
+- Apuestas mayores que cero y dentro de las fichas disponibles de ese color.
+- Bloqueo para no girar de nuevo ni cerrar la tragamonedas mientras gira.
+- Falta de dinero al comprar o de fichas al canjear.
+- Compras o canjes con todas las cantidades en cero.
+- Confirmación previa al comprar, canjear o cerrar sesión.
+- Suma exacta en dados entre 2 y 12 (solo cuando se elige sumaExacta).
+- Archivo jugadores dañado o inválido: muestra error y protege los datos sin sobrescribirlos.
 
 ## 10. Cómo ejecutar
 
