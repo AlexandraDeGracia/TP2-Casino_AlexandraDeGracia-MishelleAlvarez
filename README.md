@@ -56,13 +56,14 @@ También se usan estas estructuras:
 
 - Cada jugador empieza con 100 dólares.
 - La apuesta se descuenta antes de jugar: si gana, en tragamonedas duplica sus fichas (x2) y en dados multiplica según pagosDados (x2, x2, x5 o x12), sumando 2 puntos en ambos juegos; si pierde, resta 1 punto.
-- La tragamonedas anima los rodillos juntos usando after de Tkinter para que la ventana no se bloque.
+- La tragamonedas anima los rodillos juntos usando after de Tkinter para que la ventana no se congele.
 - Solo hay una ventana raíz y cada pantalla nueva se abre en una ventana secundaria (Toplevel).
 - La lógica de compra y canje vive en datos.py para reutilizarla desde casino.py.
 - Los errores en datos.py y sesion.py se devuelven como texto en lugar de usar raise.
 - El diccionario pagosDados (2, 2, 5 y 12) se usa como multiplicador de fichas al acertar en dados, aplicando +2 puntos al ganar y -1 punto al perder igual que en la tragamonedas.
 - Se definieron los símbolos Cereza, Limón, Campana, Estrella y Siete para los rodillos.
 - El progreso del jugador se guarda automáticamente después de cada jugada, compra o canje.
+- Se unificó en mostrarResultadoJuego (junto con liquidar) la forma de pagar y mostrar el resultado de la tragamonedas y los dados para evitar código repetido.
 
 ## 7. Decisiones descartadas
 
